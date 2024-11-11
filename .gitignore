@@ -1,0 +1,8 @@
+**/Private/
+**/.DS_Store
+**/xcuserdata/
+*.xcworkspacedata
+*.xcuserstate
+*.xcscheme
+xcschememanagement.plist
+*.xcbkptlist

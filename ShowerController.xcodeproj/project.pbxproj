@@ -1,0 +1,702 @@
+// !$*UTF8*$!
+{
+	archiveVersion = 1;
+	classes = {
+	};
+	objectVersion = 77;
+	objects = {
+
+/* Begin PBXBuildFile section */
+		A8793CCD2CE176D100540DE2 /* AsyncBluetooth in Frameworks */ = {isa = PBXBuildFile; productRef = A8793CCC2CE176D100540DE2 /* AsyncBluetooth */; };
+		A8CF02FD2CDC34EA00338D1E /* AsyncAlgorithms in Frameworks */ = {isa = PBXBuildFile; productRef = A8CF02FC2CDC34EA00338D1E /* AsyncAlgorithms */; };
+		A8D4E8952CC14C3400F14292 /* CoreBluetooth.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = A8D4E8942CC14C3400F14292 /* CoreBluetooth.framework */; };
+		A8D4E8CA2CC539F000F14292 /* CRC in Frameworks */ = {isa = PBXBuildFile; productRef = A8D4E8C92CC539F000F14292 /* CRC */; };
+/* End PBXBuildFile section */
+
+/* Begin PBXContainerItemProxy section */
+		A89D4B092CC106D300F18FF9 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = A89D4AEF2CC106D200F18FF9 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = A89D4AF62CC106D200F18FF9;
+			remoteInfo = ShowerController;
+		};
+		A89D4B132CC106D300F18FF9 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = A89D4AEF2CC106D200F18FF9 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = A89D4AF62CC106D200F18FF9;
+			remoteInfo = ShowerController;
+		};
+/* End PBXContainerItemProxy section */
+
+/* Begin PBXFileReference section */
+		A89D4AF72CC106D200F18FF9 /* ShowerController.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = ShowerController.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		A89D4B082CC106D300F18FF9 /* ShowerControllerTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = ShowerControllerTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+		A89D4B122CC106D300F18FF9 /* ShowerControllerUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = ShowerControllerUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+		A8D4E8942CC14C3400F14292 /* CoreBluetooth.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = CoreBluetooth.framework; path = Platforms/iPhoneOS.platform/Developer/SDKs/iPhoneOS18.0.sdk/System/Library/Frameworks/CoreBluetooth.framework; sourceTree = DEVELOPER_DIR; };
+/* End PBXFileReference section */
+
+/* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
+		A81EF4672CC9346900009F1C /* Exceptions for "ShowerController" folder in "ShowerController" target */ = {
+			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
+			membershipExceptions = (
+				ShowerControllerTests/ShowerControllerTests.swift,
+			);
+			target = A89D4AF62CC106D200F18FF9 /* ShowerController */;
+		};
+		A81EF4682CC9346900009F1C /* Exceptions for "ShowerController" folder in "ShowerControllerTests" target */ = {
+			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
+			membershipExceptions = (
+				ShowerControllerTests/ShowerControllerTests.swift,
+			);
+			target = A89D4B072CC106D300F18FF9 /* ShowerControllerTests */;
+		};
+/* End PBXFileSystemSynchronizedBuildFileExceptionSet section */
+
+/* Begin PBXFileSystemSynchronizedRootGroup section */
+		A89D4AF92CC106D200F18FF9 /* ShowerController */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			exceptions = (
+				A81EF4672CC9346900009F1C /* Exceptions for "ShowerController" folder in "ShowerController" target */,
+				A81EF4682CC9346900009F1C /* Exceptions for "ShowerController" folder in "ShowerControllerTests" target */,
+			);
+			path = ShowerController;
+			sourceTree = "<group>";
+		};
+		A89D4B152CC106D300F18FF9 /* ShowerControllerUITests */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			path = ShowerControllerUITests;
+			sourceTree = "<group>";
+		};
+/* End PBXFileSystemSynchronizedRootGroup section */
+
+/* Begin PBXFrameworksBuildPhase section */
+		A89D4AF42CC106D200F18FF9 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				A8D4E8952CC14C3400F14292 /* CoreBluetooth.framework in Frameworks */,
+				A8D4E8CA2CC539F000F14292 /* CRC in Frameworks */,
+				A8793CCD2CE176D100540DE2 /* AsyncBluetooth in Frameworks */,
+				A8CF02FD2CDC34EA00338D1E /* AsyncAlgorithms in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		A89D4B052CC106D300F18FF9 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		A89D4B0F2CC106D300F18FF9 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXFrameworksBuildPhase section */
+
+/* Begin PBXGroup section */
+		A89D4AEE2CC106D200F18FF9 = {
+			isa = PBXGroup;
+			children = (
+				A89D4AF92CC106D200F18FF9 /* ShowerController */,
+				A89D4B152CC106D300F18FF9 /* ShowerControllerUITests */,
+				A8D4E8932CC14C3400F14292 /* Frameworks */,
+				A89D4AF82CC106D200F18FF9 /* Products */,
+			);
+			sourceTree = "<group>";
+		};
+		A89D4AF82CC106D200F18FF9 /* Products */ = {
+			isa = PBXGroup;
+			children = (
+				A89D4AF72CC106D200F18FF9 /* ShowerController.app */,
+				A89D4B082CC106D300F18FF9 /* ShowerControllerTests.xctest */,
+				A89D4B122CC106D300F18FF9 /* ShowerControllerUITests.xctest */,
+			);
+			name = Products;
+			sourceTree = "<group>";
+		};
+		A8D4E8932CC14C3400F14292 /* Frameworks */ = {
+			isa = PBXGroup;
+			children = (
+				A8D4E8942CC14C3400F14292 /* CoreBluetooth.framework */,
+			);
+			name = Frameworks;
+			sourceTree = "<group>";
+		};
+/* End PBXGroup section */
+
+/* Begin PBXNativeTarget section */
+		A89D4AF62CC106D200F18FF9 /* ShowerController */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = A89D4B1C2CC106D300F18FF9 /* Build configuration list for PBXNativeTarget "ShowerController" */;
+			buildPhases = (
+				A89D4AF32CC106D200F18FF9 /* Sources */,
+				A89D4AF42CC106D200F18FF9 /* Frameworks */,
+				A89D4AF52CC106D200F18FF9 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			fileSystemSynchronizedGroups = (
+				A89D4AF92CC106D200F18FF9 /* ShowerController */,
+			);
+			name = ShowerController;
+			packageProductDependencies = (
+				A8D4E8C92CC539F000F14292 /* CRC */,
+				A8CF02FC2CDC34EA00338D1E /* AsyncAlgorithms */,
+				A8793CCC2CE176D100540DE2 /* AsyncBluetooth */,
+			);
+			productName = ShowerController;
+			productReference = A89D4AF72CC106D200F18FF9 /* ShowerController.app */;
+			productType = "com.apple.product-type.application";
+		};
+		A89D4B072CC106D300F18FF9 /* ShowerControllerTests */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = A89D4B1F2CC106D300F18FF9 /* Build configuration list for PBXNativeTarget "ShowerControllerTests" */;
+			buildPhases = (
+				A89D4B042CC106D300F18FF9 /* Sources */,
+				A89D4B052CC106D300F18FF9 /* Frameworks */,
+				A89D4B062CC106D300F18FF9 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				A89D4B0A2CC106D300F18FF9 /* PBXTargetDependency */,
+			);
+			name = ShowerControllerTests;
+			packageProductDependencies = (
+			);
+			productName = ShowerControllerTests;
+			productReference = A89D4B082CC106D300F18FF9 /* ShowerControllerTests.xctest */;
+			productType = "com.apple.product-type.bundle.unit-test";
+		};
+		A89D4B112CC106D300F18FF9 /* ShowerControllerUITests */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = A89D4B222CC106D300F18FF9 /* Build configuration list for PBXNativeTarget "ShowerControllerUITests" */;
+			buildPhases = (
+				A89D4B0E2CC106D300F18FF9 /* Sources */,
+				A89D4B0F2CC106D300F18FF9 /* Frameworks */,
+				A89D4B102CC106D300F18FF9 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				A89D4B142CC106D300F18FF9 /* PBXTargetDependency */,
+			);
+			fileSystemSynchronizedGroups = (
+				A89D4B152CC106D300F18FF9 /* ShowerControllerUITests */,
+			);
+			name = ShowerControllerUITests;
+			packageProductDependencies = (
+			);
+			productName = ShowerControllerUITests;
+			productReference = A89D4B122CC106D300F18FF9 /* ShowerControllerUITests.xctest */;
+			productType = "com.apple.product-type.bundle.ui-testing";
+		};
+/* End PBXNativeTarget section */
+
+/* Begin PBXProject section */
+		A89D4AEF2CC106D200F18FF9 /* Project object */ = {
+			isa = PBXProject;
+			attributes = {
+				BuildIndependentTargetsInParallel = 1;
+				LastSwiftUpdateCheck = 1600;
+				LastUpgradeCheck = 1610;
+				TargetAttributes = {
+					A89D4AF62CC106D200F18FF9 = {
+						CreatedOnToolsVersion = 16.0;
+					};
+					A89D4B072CC106D300F18FF9 = {
+						CreatedOnToolsVersion = 16.0;
+						TestTargetID = A89D4AF62CC106D200F18FF9;
+					};
+					A89D4B112CC106D300F18FF9 = {
+						CreatedOnToolsVersion = 16.0;
+						TestTargetID = A89D4AF62CC106D200F18FF9;
+					};
+				};
+			};
+			buildConfigurationList = A89D4AF22CC106D200F18FF9 /* Build configuration list for PBXProject "ShowerController" */;
+			developmentRegion = en;
+			hasScannedForEncodings = 0;
+			knownRegions = (
+				en,
+				Base,
+			);
+			mainGroup = A89D4AEE2CC106D200F18FF9;
+			minimizedProjectReferenceProxies = 1;
+			packageReferences = (
+				A8D4E8C82CC52C9200F14292 /* XCRemoteSwiftPackageReference "crc-swift" */,
+				A8CF02FB2CDC330500338D1E /* XCRemoteSwiftPackageReference "swift-async-algorithms" */,
+				A8793CCB2CE176D100540DE2 /* XCRemoteSwiftPackageReference "AsyncBluetooth" */,
+			);
+			preferredProjectObjectVersion = 77;
+			productRefGroup = A89D4AF82CC106D200F18FF9 /* Products */;
+			projectDirPath = "";
+			projectRoot = "";
+			targets = (
+				A89D4AF62CC106D200F18FF9 /* ShowerController */,
+				A89D4B072CC106D300F18FF9 /* ShowerControllerTests */,
+				A89D4B112CC106D300F18FF9 /* ShowerControllerUITests */,
+			);
+		};
+/* End PBXProject section */
+
+/* Begin PBXResourcesBuildPhase section */
+		A89D4AF52CC106D200F18FF9 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		A89D4B062CC106D300F18FF9 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		A89D4B102CC106D300F18FF9 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXResourcesBuildPhase section */
+
+/* Begin PBXSourcesBuildPhase section */
+		A89D4AF32CC106D200F18FF9 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		A89D4B042CC106D300F18FF9 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		A89D4B0E2CC106D300F18FF9 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXSourcesBuildPhase section */
+
+/* Begin PBXTargetDependency section */
+		A89D4B0A2CC106D300F18FF9 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = A89D4AF62CC106D200F18FF9 /* ShowerController */;
+			targetProxy = A89D4B092CC106D300F18FF9 /* PBXContainerItemProxy */;
+		};
+		A89D4B142CC106D300F18FF9 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = A89D4AF62CC106D200F18FF9 /* ShowerController */;
+			targetProxy = A89D4B132CC106D300F18FF9 /* PBXContainerItemProxy */;
+		};
+/* End PBXTargetDependency section */
+
+/* Begin XCBuildConfiguration section */
+		A89D4B1A2CC106D300F18FF9 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS = YES;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++20";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				COPY_PHASE_STRIP = NO;
+				DEAD_CODE_STRIPPING = YES;
+				DEBUG_INFORMATION_FORMAT = dwarf;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				ENABLE_TESTABILITY = YES;
+				ENABLE_USER_SCRIPT_SANDBOXING = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu17;
+				GCC_DYNAMIC_NO_PIC = NO;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_OPTIMIZATION_LEVEL = 0;
+				GCC_PREPROCESSOR_DEFINITIONS = (
+					"DEBUG=1",
+					"$(inherited)",
+				);
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				INFOPLIST_KEY_NSBluetoothAlwaysUsageDescription = "";
+				LOCALIZATION_PREFERS_STRING_CATALOGS = YES;
+				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
+				MTL_FAST_MATH = YES;
+				ONLY_ACTIVE_ARCH = YES;
+				SWIFT_ACTIVE_COMPILATION_CONDITIONS = "DEBUG $(inherited)";
+				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
+			};
+			name = Debug;
+		};
+		A89D4B1B2CC106D300F18FF9 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS = YES;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++20";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				COPY_PHASE_STRIP = NO;
+				DEAD_CODE_STRIPPING = YES;
+				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
+				ENABLE_NS_ASSERTIONS = NO;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				ENABLE_USER_SCRIPT_SANDBOXING = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu17;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				INFOPLIST_KEY_NSBluetoothAlwaysUsageDescription = "";
+				LOCALIZATION_PREFERS_STRING_CATALOGS = YES;
+				MTL_ENABLE_DEBUG_INFO = NO;
+				MTL_FAST_MATH = YES;
+				SWIFT_COMPILATION_MODE = wholemodule;
+			};
+			name = Release;
+		};
+		A89D4B1D2CC106D300F18FF9 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_ENTITLEMENTS = ShowerController/ShowerController.entitlements;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEAD_CODE_STRIPPING = YES;
+				DEVELOPMENT_ASSET_PATHS = "\"ShowerController/Preview Content\"";
+				DEVELOPMENT_TEAM = 38353WECJK;
+				ENABLE_PREVIEWS = YES;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_KEY_NSBluetoothAlwaysUsageDescription = "";
+				"INFOPLIST_KEY_UIApplicationSceneManifest_Generation[sdk=iphoneos*]" = YES;
+				"INFOPLIST_KEY_UIApplicationSceneManifest_Generation[sdk=iphonesimulator*]" = YES;
+				"INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents[sdk=iphoneos*]" = YES;
+				"INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents[sdk=iphonesimulator*]" = YES;
+				"INFOPLIST_KEY_UILaunchScreen_Generation[sdk=iphoneos*]" = YES;
+				"INFOPLIST_KEY_UILaunchScreen_Generation[sdk=iphonesimulator*]" = YES;
+				"INFOPLIST_KEY_UIStatusBarStyle[sdk=iphoneos*]" = UIStatusBarStyleDefault;
+				"INFOPLIST_KEY_UIStatusBarStyle[sdk=iphonesimulator*]" = UIStatusBarStyleDefault;
+				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone = "UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				IPHONEOS_DEPLOYMENT_TARGET = 18.0;
+				LD_RUNPATH_SEARCH_PATHS = "@executable_path/Frameworks";
+				"LD_RUNPATH_SEARCH_PATHS[sdk=macosx*]" = "@executable_path/../Frameworks";
+				MACOSX_DEPLOYMENT_TARGET = 15.0;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = uk.org.hannam.ShowerController;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = auto;
+				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
+				SUPPORTS_MACCATALYST = NO;
+				SUPPORTS_MAC_DESIGNED_FOR_IPHONE_IPAD = YES;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_STRICT_CONCURRENCY = minimal;
+				SWIFT_VERSION = 6.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				TVOS_DEPLOYMENT_TARGET = 18.0;
+				WATCHOS_DEPLOYMENT_TARGET = 11.0;
+				XROS_DEPLOYMENT_TARGET = 2.0;
+			};
+			name = Debug;
+		};
+		A89D4B1E2CC106D300F18FF9 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_ENTITLEMENTS = ShowerController/ShowerController.entitlements;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEAD_CODE_STRIPPING = YES;
+				DEVELOPMENT_ASSET_PATHS = "\"ShowerController/Preview Content\"";
+				DEVELOPMENT_TEAM = 38353WECJK;
+				ENABLE_PREVIEWS = YES;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_KEY_NSBluetoothAlwaysUsageDescription = "";
+				"INFOPLIST_KEY_UIApplicationSceneManifest_Generation[sdk=iphoneos*]" = YES;
+				"INFOPLIST_KEY_UIApplicationSceneManifest_Generation[sdk=iphonesimulator*]" = YES;
+				"INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents[sdk=iphoneos*]" = YES;
+				"INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents[sdk=iphonesimulator*]" = YES;
+				"INFOPLIST_KEY_UILaunchScreen_Generation[sdk=iphoneos*]" = YES;
+				"INFOPLIST_KEY_UILaunchScreen_Generation[sdk=iphonesimulator*]" = YES;
+				"INFOPLIST_KEY_UIStatusBarStyle[sdk=iphoneos*]" = UIStatusBarStyleDefault;
+				"INFOPLIST_KEY_UIStatusBarStyle[sdk=iphonesimulator*]" = UIStatusBarStyleDefault;
+				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone = "UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				IPHONEOS_DEPLOYMENT_TARGET = 18.0;
+				LD_RUNPATH_SEARCH_PATHS = "@executable_path/Frameworks";
+				"LD_RUNPATH_SEARCH_PATHS[sdk=macosx*]" = "@executable_path/../Frameworks";
+				MACOSX_DEPLOYMENT_TARGET = 15.0;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = uk.org.hannam.ShowerController;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = auto;
+				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
+				SUPPORTS_MACCATALYST = NO;
+				SUPPORTS_MAC_DESIGNED_FOR_IPHONE_IPAD = YES;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_STRICT_CONCURRENCY = minimal;
+				SWIFT_VERSION = 6.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				TVOS_DEPLOYMENT_TARGET = 18.0;
+				WATCHOS_DEPLOYMENT_TARGET = 11.0;
+				XROS_DEPLOYMENT_TARGET = 2.0;
+			};
+			name = Release;
+		};
+		A89D4B202CC106D300F18FF9 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEAD_CODE_STRIPPING = YES;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_KEY_NSBluetoothAlwaysUsageDescription = "";
+				IPHONEOS_DEPLOYMENT_TARGET = 18.0;
+				MACOSX_DEPLOYMENT_TARGET = 15.0;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = uk.org.hannam.ShowerControllerTests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = auto;
+				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator macosx xros xrsimulator";
+				SWIFT_EMIT_LOC_STRINGS = NO;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2,7";
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/ShowerController.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/ShowerController";
+				XROS_DEPLOYMENT_TARGET = 2.0;
+			};
+			name = Debug;
+		};
+		A89D4B212CC106D300F18FF9 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEAD_CODE_STRIPPING = YES;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_KEY_NSBluetoothAlwaysUsageDescription = "";
+				IPHONEOS_DEPLOYMENT_TARGET = 18.0;
+				MACOSX_DEPLOYMENT_TARGET = 15.0;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = uk.org.hannam.ShowerControllerTests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = auto;
+				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator macosx xros xrsimulator";
+				SWIFT_EMIT_LOC_STRINGS = NO;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2,7";
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/ShowerController.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/ShowerController";
+				XROS_DEPLOYMENT_TARGET = 2.0;
+			};
+			name = Release;
+		};
+		A89D4B232CC106D300F18FF9 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEAD_CODE_STRIPPING = YES;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_KEY_NSBluetoothAlwaysUsageDescription = "";
+				IPHONEOS_DEPLOYMENT_TARGET = 18.0;
+				MACOSX_DEPLOYMENT_TARGET = 15.0;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = uk.org.hannam.ShowerControllerUITests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = auto;
+				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator macosx xros xrsimulator";
+				SWIFT_EMIT_LOC_STRINGS = NO;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2,7";
+				TEST_TARGET_NAME = ShowerController;
+				XROS_DEPLOYMENT_TARGET = 2.0;
+			};
+			name = Debug;
+		};
+		A89D4B242CC106D300F18FF9 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEAD_CODE_STRIPPING = YES;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_KEY_NSBluetoothAlwaysUsageDescription = "";
+				IPHONEOS_DEPLOYMENT_TARGET = 18.0;
+				MACOSX_DEPLOYMENT_TARGET = 15.0;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = uk.org.hannam.ShowerControllerUITests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = auto;
+				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator macosx xros xrsimulator";
+				SWIFT_EMIT_LOC_STRINGS = NO;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2,7";
+				TEST_TARGET_NAME = ShowerController;
+				XROS_DEPLOYMENT_TARGET = 2.0;
+			};
+			name = Release;
+		};
+/* End XCBuildConfiguration section */
+
+/* Begin XCConfigurationList section */
+		A89D4AF22CC106D200F18FF9 /* Build configuration list for PBXProject "ShowerController" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				A89D4B1A2CC106D300F18FF9 /* Debug */,
+				A89D4B1B2CC106D300F18FF9 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		A89D4B1C2CC106D300F18FF9 /* Build configuration list for PBXNativeTarget "ShowerController" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				A89D4B1D2CC106D300F18FF9 /* Debug */,
+				A89D4B1E2CC106D300F18FF9 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		A89D4B1F2CC106D300F18FF9 /* Build configuration list for PBXNativeTarget "ShowerControllerTests" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				A89D4B202CC106D300F18FF9 /* Debug */,
+				A89D4B212CC106D300F18FF9 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		A89D4B222CC106D300F18FF9 /* Build configuration list for PBXNativeTarget "ShowerControllerUITests" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				A89D4B232CC106D300F18FF9 /* Debug */,
+				A89D4B242CC106D300F18FF9 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+/* End XCConfigurationList section */
+
+/* Begin XCRemoteSwiftPackageReference section */
+		A8793CCB2CE176D100540DE2 /* XCRemoteSwiftPackageReference "AsyncBluetooth" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/manolofdez/AsyncBluetooth";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 4.0.0;
+			};
+		};
+		A8CF02FB2CDC330500338D1E /* XCRemoteSwiftPackageReference "swift-async-algorithms" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/apple/swift-async-algorithms.git";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 1.0.2;
+			};
+		};
+		A8D4E8C82CC52C9200F14292 /* XCRemoteSwiftPackageReference "crc-swift" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/QuickBirdEng/crc-swift.git";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 0.1.1;
+			};
+		};
+/* End XCRemoteSwiftPackageReference section */
+
+/* Begin XCSwiftPackageProductDependency section */
+		A8793CCC2CE176D100540DE2 /* AsyncBluetooth */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = A8793CCB2CE176D100540DE2 /* XCRemoteSwiftPackageReference "AsyncBluetooth" */;
+			productName = AsyncBluetooth;
+		};
+		A8CF02FC2CDC34EA00338D1E /* AsyncAlgorithms */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = A8CF02FB2CDC330500338D1E /* XCRemoteSwiftPackageReference "swift-async-algorithms" */;
+			productName = AsyncAlgorithms;
+		};
+		A8D4E8C92CC539F000F14292 /* CRC */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = A8D4E8C82CC52C9200F14292 /* XCRemoteSwiftPackageReference "crc-swift" */;
+			productName = CRC;
+		};
+/* End XCSwiftPackageProductDependency section */
+	};
+	rootObject = A89D4AEF2CC106D200F18FF9 /* Project object */;
+}
