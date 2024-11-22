@@ -47,10 +47,20 @@ class Toolbox {
     
     init(_ mode: Mode) throws {
         let liveModelContainer = try ModelContainer.create(isStoredInMemoryOnly: false)
-        liveTools = Tools(modelContainer: liveModelContainer, bluetoothService: AsyncBluetoothService(modelContainer: liveModelContainer))
+        liveTools = Tools(
+            modelContainer: liveModelContainer,
+            bluetoothService: ManagedReentrancyBluetoothService(
+                bluetoothService: AsyncBluetoothService(modelContainer: liveModelContainer)
+            )
+        )
 
         let mockModelContainer = try ModelContainer.create(isStoredInMemoryOnly: true)
-        mockTools = Tools(modelContainer: mockModelContainer, bluetoothService: MockBluetoothService(modelContainer: mockModelContainer))
+        mockTools = Tools(
+            modelContainer: mockModelContainer,
+            bluetoothService: ManagedReentrancyBluetoothService(
+                bluetoothService: MockBluetoothService(modelContainer: mockModelContainer)
+            )
+        )
         
         _mode = mode
         _asyncJobs = AsyncJobs()
@@ -79,16 +89,22 @@ class Toolbox {
     func navigateHome() {
         navigationPath.removeLast(navigationPath.count)
     }
+
+    func startBluetoothProcessing() async {
+        await tools.bluetoothService.startProcessing()
+    }
     
     class Tools {
         let modelContainer: ModelContainer
-        let clientService: ClientService
+        let bluetoothService: ManagedReentrancyBluetoothService
         let deviceService: DeviceService
-        
-        init(modelContainer: ModelContainer, bluetoothService: BluetoothService) {
+        let clientService: ClientService
+
+        init(modelContainer: ModelContainer, bluetoothService: ManagedReentrancyBluetoothService) {
             self.modelContainer = modelContainer
-            self.clientService = ClientService(modelContainer: modelContainer)
+            self.bluetoothService = bluetoothService
             self.deviceService = DeviceService(modelContainer: modelContainer, bluetoothService: bluetoothService)
+            self.clientService = ClientService(modelContainer: modelContainer)
         }
     }
 }

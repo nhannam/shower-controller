@@ -33,7 +33,7 @@ struct ShowerControllerApp: App {
                                 }
                         }
                         .task {
-                            await tools.deviceService.startProcessing()
+                            await tools.startBluetoothProcessing()
                         }
                         .environment(tools)
                         .modelContextReloader(tools.modelContainer.mainContext)

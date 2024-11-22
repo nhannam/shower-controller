@@ -75,10 +75,6 @@ actor DeviceService: SwiftData.ModelActor {
         }
     }
 
-    func startProcessing() async {
-        await bluetoothService.startProcessing()
-    }
-    
     func suspendProcessing() async throws {
         try await errorBoundary {
             try await bluetoothService.stopScan()

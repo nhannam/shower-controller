@@ -23,9 +23,6 @@ actor AsyncBluetoothService: BluetoothService {
     private static let timeoutDuration: Duration = .seconds(5)
     private static let errorBoundaryTimeoutDuration: Duration = .seconds(6)
 
-    // channel used to prevent overlapping bluetooth operations
-    private let executionChannel: AsyncRequestResponseChannel<Void> = AsyncRequestResponseChannel()
-    
     private func errorBoundary<R: Sendable>(@_inheritActorContext _ block: @escaping @Sendable () async throws -> R?) async throws -> R? {
         do {
             return try await block()
@@ -35,8 +32,6 @@ actor AsyncBluetoothService: BluetoothService {
             throw BluetoothServiceError.operationTimedOut
         } catch let cancellationError as CancellationError {
             Self.logger.warning("Task cancellation trapped by error boundary: \(cancellationError)")
-        } catch AsyncRequestResponseChannelError.noResponse {
-            Self.logger.debug("No response from AsyncRequestResponseChannel - likely a task was cancelled")
         } catch BluetoothError.bluetoothUnavailable(_) {
             throw BluetoothServiceError.bluetoothUnavailable
         } catch BluetoothError.connectingInProgress, BluetoothError.disconnectingInProgress,
@@ -156,65 +151,56 @@ actor AsyncBluetoothService: BluetoothService {
         return peripheral
     }
     
-
-    func dispatchCommands(_ commands: [DeviceCommand]) async throws {
+    func dispatchCommand(_ command: DeviceCommand) async throws {
         try await errorBoundary {
-            return try await withTimeout(Self.timeoutDuration) {
-                try await self.executionChannel.submit {
-                    for command in commands {
-                        try await self.dispatchCommand(command: command)
+            return try await withTimeout(Self.timeoutDuration) { [self] in
+                let device = try getDeviceById(command.deviceId)
+                if let peripheral = try await getConnectedPeripheral(device.id) {
+                    
+                    let dataClientSlot = switch command.self {
+                    case is PairDevice:
+                        UInt8(0x00)
+                    default:
+                        if let pairedClientSlot = device.clientSlot {
+                            pairedClientSlot
+                        } else {
+                            throw BluetoothServiceError.notPaired
+                        }
                     }
-                }
-            }
-        }
-    }
-    
-    private func dispatchCommand(command: DeviceCommand) async throws {
-        let device = try getDeviceById(command.deviceId)
-        if let peripheral = try await getConnectedPeripheral(device.id) {
-            
-            let dataClientSlot = switch command.self {
-            case is PairDevice:
-                UInt8(0x00)
-            default:
-                if let pairedClientSlot = device.clientSlot {
-                    pairedClientSlot
-                } else {
-                    throw BluetoothServiceError.notPaired
-                }
-            }
-            
-            let notificationData = PublisherAsyncSequence<Data>(
-                valuesPublisher: await peripheral.characteristicValueUpdatedPublisher
-                    .filter { $0.characteristic.uuid == Characteristic.CHARACTERISTIC_NOTIFICATIONS }
-                    .compactMap { $0.value }
-            )
-            let notificationParser = NotificationParser()
-            
-            let clientSecret = try getClient().secret
-            let commandDispatcher = CommandDispatcher(peripheral: peripheral, dataClientSlot: dataClientSlot, clientSecret: clientSecret)
-            
-            try await withTimeout(
-                Self.timeoutDuration,
-                error: BluetoothServiceError.timeoutSendingCommand
-            ) {
-                try await command.accept(commandDispatcher)
-            }
-            
-            let dataAccumulator = DataAccumulator(clientSlot: dataClientSlot)
-            
-            try await withTimeout(
-                Self.timeoutDuration,
-                error: BluetoothServiceError.timeoutWaitingForResponse
-            ) {
-                notificationLoop: for await notification in notificationData
-                    .compactMap({ data in await dataAccumulator.accumulate(data) })
-                    .compactMap({ data in
-                        notificationParser.parseNotification(data, command: command)
-                    }) {
-                    if try await command.accept(IsExpectedNotificationTypeVisitor(notification)) {
-                        try await self.dispatchNotification(notification: notification)
-                        break notificationLoop
+                    
+                    let notificationData = PublisherAsyncSequence<Data>(
+                        valuesPublisher: await peripheral.characteristicValueUpdatedPublisher
+                            .filter { $0.characteristic.uuid == Characteristic.CHARACTERISTIC_NOTIFICATIONS }
+                            .compactMap { $0.value }
+                    )
+                    let notificationParser = NotificationParser()
+                    
+                    let clientSecret = try getClient().secret
+                    let commandDispatcher = CommandDispatcher(peripheral: peripheral, dataClientSlot: dataClientSlot, clientSecret: clientSecret)
+                    
+                    try await withTimeout(
+                        Self.timeoutDuration,
+                        error: BluetoothServiceError.timeoutSendingCommand
+                    ) {
+                        try await command.accept(commandDispatcher)
+                    }
+                    
+                    let dataAccumulator = DataAccumulator(clientSlot: dataClientSlot)
+                    
+                    try await withTimeout(
+                        Self.timeoutDuration,
+                        error: BluetoothServiceError.timeoutWaitingForResponse
+                    ) {
+                        notificationLoop: for await notification in notificationData
+                            .compactMap({ data in await dataAccumulator.accumulate(data) })
+                            .compactMap({ data in
+                                notificationParser.parseNotification(data, command: command)
+                            }) {
+                            if try await command.accept(IsExpectedNotificationTypeVisitor(notification)) {
+                                try await self.dispatchNotification(notification: notification)
+                                break notificationLoop
+                            }
+                        }
                     }
                 }
             }
@@ -226,14 +212,6 @@ actor AsyncBluetoothService: BluetoothService {
             let device = try getDeviceById(notification.deviceId)
             notification.accept(DeviceNotificatonApplier(device: device, modelContext: modelContext))
         }
-    }
-    
-    func startProcessing() async {
-        Self.logger.warning("Starting processing of command channel")
-        defer {
-            Self.logger.warning("Finished processing command channel")
-        }
-        await executionChannel.start()
     }
     
     private func disconnectPeripheral(_ peripheral: Peripheral) async throws {
@@ -320,40 +298,38 @@ actor AsyncBluetoothService: BluetoothService {
     func requestDeviceInformation(_ deviceId: UUID) async throws {
         try await errorBoundary {
             return try await withTimeout(Self.timeoutDuration) {
-                try await self.executionChannel.submit {
-                    if let peripheral = try await self.getConnectedPeripheral(deviceId) {
-                        let manufacturerName: String = try await peripheral.readValue(
-                            forCharacteristicWithCBUUID: Characteristic.CHARACTERISTIC_MANUFACTURER_NAME,
-                            ofServiceWithCBUUID: Service.SERVICE_DEVICE_INFORMATION
-                        ) ?? ""
-                        let modelNumber: String = try await peripheral.readValue(
-                            forCharacteristicWithCBUUID: Characteristic.CHARACTERISTIC_MODEL_NUMBER,
-                            ofServiceWithCBUUID: Service.SERVICE_DEVICE_INFORMATION
-                        ) ?? ""
-                        let hardwareRevision: Data? = try await peripheral.readValue(
-                            forCharacteristicWithCBUUID: Characteristic.CHARACTERISTIC_HARDWARE_REVISION,
-                            ofServiceWithCBUUID: Service.SERVICE_DEVICE_INFORMATION
+                if let peripheral = try await self.getConnectedPeripheral(deviceId) {
+                    let manufacturerName: String = try await peripheral.readValue(
+                        forCharacteristicWithCBUUID: Characteristic.CHARACTERISTIC_MANUFACTURER_NAME,
+                        ofServiceWithCBUUID: Service.SERVICE_DEVICE_INFORMATION
+                    ) ?? ""
+                    let modelNumber: String = try await peripheral.readValue(
+                        forCharacteristicWithCBUUID: Characteristic.CHARACTERISTIC_MODEL_NUMBER,
+                        ofServiceWithCBUUID: Service.SERVICE_DEVICE_INFORMATION
+                    ) ?? ""
+                    let hardwareRevision: Data? = try await peripheral.readValue(
+                        forCharacteristicWithCBUUID: Characteristic.CHARACTERISTIC_HARDWARE_REVISION,
+                        ofServiceWithCBUUID: Service.SERVICE_DEVICE_INFORMATION
+                    )
+                    let firmwareRevision: Data? = try await peripheral.readValue<Data>(
+                        forCharacteristicWithCBUUID: Characteristic.CHARACTERISTIC_FIRMWARE_REVISION,
+                        ofServiceWithCBUUID: Service.SERVICE_DEVICE_INFORMATION
+                    )
+                    let serialNumber: Data? = try await peripheral.readValue(
+                        forCharacteristicWithCBUUID: Characteristic.CHARACTERISTIC_SERIAL_NUMBER,
+                        ofServiceWithCBUUID: Service.SERVICE_DEVICE_INFORMATION
+                    )
+                    
+                    try await self.dispatchNotification(
+                        notification: DeviceInformationNotification(
+                            deviceId: deviceId,
+                            manufacturerName: manufacturerName,
+                            modelNumber: modelNumber,
+                            hardwareRevision: hardwareRevision?.hexDescription ?? "",
+                            firmwareRevision: firmwareRevision?.hexDescription ?? "",
+                            serialNumber: serialNumber?.hexDescription ?? ""
                         )
-                        let firmwareRevision: Data? = try await peripheral.readValue<Data>(
-                            forCharacteristicWithCBUUID: Characteristic.CHARACTERISTIC_FIRMWARE_REVISION,
-                            ofServiceWithCBUUID: Service.SERVICE_DEVICE_INFORMATION
-                        )
-                        let serialNumber: Data? = try await peripheral.readValue(
-                            forCharacteristicWithCBUUID: Characteristic.CHARACTERISTIC_SERIAL_NUMBER,
-                            ofServiceWithCBUUID: Service.SERVICE_DEVICE_INFORMATION
-                        )
-                        
-                        try await self.dispatchNotification(
-                            notification: DeviceInformationNotification(
-                                deviceId: deviceId,
-                                manufacturerName: manufacturerName,
-                                modelNumber: modelNumber,
-                                hardwareRevision: hardwareRevision?.hexDescription ?? "",
-                                firmwareRevision: firmwareRevision?.hexDescription ?? "",
-                                serialNumber: serialNumber?.hexDescription ?? ""
-                            )
-                        )
-                    }
+                    )
                 }
             }
         }

@@ -13,15 +13,9 @@ actor MockBluetoothService: BluetoothService {
     static let device1Id = UUID()
     static let device2Id = UUID()
 
-    func dispatchCommands(_ commands: [any DeviceCommand]) async throws {
-        for command in commands {
-            let deviceActor = try MockDeviceActor(modelContainer: modelContainer, deviceId: command.deviceId)
-            try await deviceActor.executeCommand(command)
-        }
-    }
-    
-    func startProcessing() async {
-        // Nothing to do
+    func dispatchCommand(_ command: any DeviceCommand) async throws {
+        let deviceActor = try MockDeviceActor(modelContainer: modelContainer, deviceId: command.deviceId)
+        try await deviceActor.executeCommand(command)
     }
     
     func disconnectAll() async throws {

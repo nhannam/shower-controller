@@ -42,7 +42,7 @@ struct Preview<Component: View>: View {
                 component()
             }
             .task {
-                await tools.deviceService.startProcessing()
+                await tools.startBluetoothProcessing()
             }
             .environment(tools)
             .modelContextReloader(modelContext)

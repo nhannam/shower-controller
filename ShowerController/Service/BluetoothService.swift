@@ -24,11 +24,19 @@ enum BluetoothServiceError: Error {
 }
 
 protocol BluetoothService: Actor {
+    func dispatchCommand(_ command: DeviceCommand) async throws
     func dispatchCommands(_ commands: [DeviceCommand]) async throws
-    func startProcessing() async
     func disconnectAll() async throws
     func disconnect(_ deviceId: UUID) async throws
     func startScan() async throws
     func stopScan() async throws
     func requestDeviceInformation(_ deviceId: UUID) async throws
+}
+
+extension BluetoothService {
+    func dispatchCommands(_ commands: [DeviceCommand]) async throws {
+        for command in commands {
+            try await dispatchCommand(command)
+        }
+    }
 }
