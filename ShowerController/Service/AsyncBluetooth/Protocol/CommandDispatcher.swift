@@ -27,8 +27,9 @@ extension CommandDispatcher: DeviceCommandVisitor {
     
     private func writeData(payloadWithCrc: Data) async throws {
         var startIndex = 0
-        while (startIndex < payloadWithCrc.count) {
-            let chunk = payloadWithCrc.subdata(in: startIndex..<(min(startIndex+20, payloadWithCrc.count)))
+        let totalBytes = payloadWithCrc.count
+        while (startIndex < totalBytes) {
+            let chunk = payloadWithCrc.subdata(in: startIndex..<(min(startIndex+20, totalBytes)))
             try await peripheral.writeValue(
                 chunk,
                 forCharacteristicWithCBUUID: Characteristic.CHARACTERISTIC_WRITE,

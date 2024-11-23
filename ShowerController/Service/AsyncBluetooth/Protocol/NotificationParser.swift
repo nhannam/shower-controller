@@ -10,13 +10,19 @@ import Foundation
 final class NotificationParser: Sendable {
     private static let logger = LoggerFactory.logger(NotificationParser.self)
     
-    private func bitsSet(byte: UInt8) -> [UInt8] {
+    private func bitsSet(data: Data) -> [UInt8] {
         var bitsSet: [UInt8] = []
-        (UInt8(0)..<UInt8(8)).forEach() { bit in
-            if ((byte & (1 << bit)) != 0) {
-                bitsSet.append(bit)
+        
+        var slotNumber: UInt8 = 0
+        for byte in data.reversed() {
+            for bit in (0..<8) {
+                if ((byte & (1 << bit)) != 0) {
+                    bitsSet.append(slotNumber)
+                }
+                slotNumber += 1
             }
         }
+
         return bitsSet
     }
     
@@ -71,14 +77,14 @@ final class NotificationParser: Sendable {
                 notification = PresetSlotsNotification(
                     deviceId: command.deviceId,
                     clientSlot: clientSlot,
-                    presetSlots: bitsSet(byte: payload[1])
+                    presetSlots: bitsSet(data: payload)
                 )
             case is RequestPairedClientSlots:
                 notificationType = "ClientSlots"
                 notification = PairedClientSlotsNotification(
                     deviceId: command.deviceId,
                     clientSlot: clientSlot,
-                    pairedClientSlots: bitsSet(byte: payload[1])
+                    pairedClientSlots: bitsSet(data: payload)
                 )
             default:
                 notificationType = "UnknownSlotsOperation"
