@@ -8,10 +8,22 @@
 import Foundation
 import SwiftData
 
-@ModelActor
-actor MockBluetoothService: BluetoothService {
+// @ModelActor creates a single arg init, which prevents us passing the BluetoothService in
+actor MockBluetoothService: ModelActor, BluetoothService {
     static let device1Id = UUID()
     static let device2Id = UUID()
+    private static let author = "MockBluetoothService"
+
+    nonisolated let modelExecutor: any ModelExecutor
+    nonisolated let modelContainer: ModelContainer
+
+    init(modelContainer: ModelContainer) {
+        let modelContext = ModelContext(modelContainer)
+        modelContext.author = Self.author
+        
+        self.modelExecutor = DefaultSerialModelExecutor(modelContext: modelContext)
+        self.modelContainer = modelContainer
+    }
 
     func dispatchCommand(_ command: any DeviceCommand) async throws {
         let deviceActor = try MockDeviceActor(modelContainer: modelContainer, deviceId: command.deviceId)

@@ -17,18 +17,21 @@ enum DeviceServiceError: Error {
 }
 
 // @ModelActor creates a single arg init, which prevents us passing the BluetoothService in
-actor DeviceService: SwiftData.ModelActor {
+actor DeviceService: ModelActor {
     private static let logger = LoggerFactory.logger(DeviceService.self)
+    private static let author = "DeviceService"
     
     static let UNPAIRED_PREDICATE = #Predicate<Device> { $0.clientSlot == nil }
     static let PAIRED_PREDICATE = #Predicate<Device> { $0.clientSlot != nil }
 
     private let bluetoothService: BluetoothService
-    nonisolated let modelExecutor: any SwiftData.ModelExecutor
-    nonisolated let modelContainer: SwiftData.ModelContainer
+    nonisolated let modelExecutor: any ModelExecutor
+    nonisolated let modelContainer: ModelContainer
 
-    init(modelContainer: SwiftData.ModelContainer, bluetoothService: BluetoothService) {
+    init(modelContainer: ModelContainer, bluetoothService: BluetoothService) {
         let modelContext = ModelContext(modelContainer)
+        modelContext.author = Self.author
+        
         self.modelExecutor = DefaultSerialModelExecutor(modelContext: modelContext)
         self.modelContainer = modelContainer
         self.bluetoothService = bluetoothService
@@ -103,8 +106,8 @@ actor DeviceService: SwiftData.ModelActor {
             let device = try getDeviceById(deviceId)
             
             try await bluetoothService.dispatchCommands([
+                RequestState(deviceId: device.id),
                 RequestNickname(deviceId: device.id),
-                RequestState(deviceId: device.id)
             ])
         }
     }
@@ -125,16 +128,14 @@ actor DeviceService: SwiftData.ModelActor {
     func requestState(_ deviceId: UUID) async throws {
         try await errorBoundary {
             let device = try getDeviceById(deviceId)
-            try await bluetoothService.dispatchCommands([
-                RequestState(deviceId: device.id)
-            ])
+            try await bluetoothService.dispatchCommand(RequestState(deviceId: device.id))
         }
     }
     
     func startOutlet(_ deviceId: UUID, outletSlot: Int) async throws {
         try await errorBoundary {
             let device = try getDeviceById(deviceId)
-            try await bluetoothService.dispatchCommands([
+            try await bluetoothService.dispatchCommand(
                 OperateOutletControls(
                     deviceId: device.id,
                     outletSlot0Running: outletSlot == Device.outletSlot0,
@@ -142,14 +143,14 @@ actor DeviceService: SwiftData.ModelActor {
                     targetTemperature: device.selectedTemperature,
                     timerState: .running
                 )
-            ])
+            )
         }
     }
     
     func updateSelectedTemperature(_ deviceId: UUID, targetTemperature: Double) async throws {
         try await errorBoundary {
             let device = try getDeviceById(deviceId)
-            try await bluetoothService.dispatchCommands([
+            try await bluetoothService.dispatchCommand(
                 OperateOutletControls(
                     deviceId: device.id,
                     outletSlot0Running: device.getOutletBySlot(outletSlot: Device.outletSlot0)?.isRunning ?? false,
@@ -157,23 +158,21 @@ actor DeviceService: SwiftData.ModelActor {
                     targetTemperature: targetTemperature,
                     timerState: device.timerState
                 )
-            ])
+            )
         }
     }
     
     func startPreset(_ deviceId: UUID, presetSlot: UInt8) async throws {
         try await errorBoundary {
             let device = try getDeviceById(deviceId)
-            try await bluetoothService.dispatchCommands([
-                StartPreset(deviceId: device.id, presetSlot: presetSlot)
-            ])
+            try await bluetoothService.dispatchCommand(StartPreset(deviceId: device.id, presetSlot: presetSlot))
         }
     }
     
     func stopOutlets(_ deviceId: UUID) async throws {
         try await errorBoundary {
             let device = try getDeviceById(deviceId)
-            try await bluetoothService.dispatchCommands([
+            try await bluetoothService.dispatchCommand(
                 OperateOutletControls(
                    deviceId: device.id,
                    outletSlot0Running: false,
@@ -182,7 +181,7 @@ actor DeviceService: SwiftData.ModelActor {
                    // Follow controller behaviour by settin to paused rather than stopped
                    timerState: .paused
                )
-            ])
+            )
         }
     }
     
@@ -226,7 +225,7 @@ actor DeviceService: SwiftData.ModelActor {
     private func stopOutletsAndWaitForLockoutToExipire(_ device: Device) async throws {
         // Most update operations require the device to be stopped before they're permitted.
         if (device.isTimerRunning) {
-            try await bluetoothService.dispatchCommands([
+            try await bluetoothService.dispatchCommand(
                 OperateOutletControls(
                    deviceId: device.id,
                    outletSlot0Running: false,
@@ -235,7 +234,7 @@ actor DeviceService: SwiftData.ModelActor {
                    // Move to off state
                    timerState: .off
                )
-            ])
+            )
         }
         
         // They also require a delay of 5 seconds after stopping the outlets.
@@ -347,9 +346,9 @@ actor DeviceService: SwiftData.ModelActor {
         try await errorBoundary {
             let device = try getDeviceById(deviceId)
             let client = try getClient()
-            try await bluetoothService.dispatchCommands([
+            try await bluetoothService.dispatchCommand(
                 PairDevice(deviceId: device.id, clientName: client.name)
-            ])
+            )
         }
         try await bluetoothService.disconnect(deviceId)
     }
@@ -385,9 +384,9 @@ actor DeviceService: SwiftData.ModelActor {
         try await errorBoundary {
             do {
                 let device = try getDeviceById(deviceId)
-                try await bluetoothService.dispatchCommands([
+                try await bluetoothService.dispatchCommand(
                     RequestPairedClientSlots(deviceId: device.id)
-                ])
+                )
             }
             
             do {
@@ -404,7 +403,7 @@ actor DeviceService: SwiftData.ModelActor {
     func requestSettings(_ deviceId: UUID) async throws {
         try await errorBoundary {
             let device = try getDeviceById(deviceId)
-            try await bluetoothService.dispatchCommands([RequestDeviceSettings(deviceId: device.id)])
+            try await bluetoothService.dispatchCommand(RequestDeviceSettings(deviceId: device.id))
         }
     }
     
@@ -462,9 +461,7 @@ actor DeviceService: SwiftData.ModelActor {
 
             try await stopOutletsAndWaitForLockoutToExipire(device)
 
-            try await bluetoothService.dispatchCommands([
-                RestartDevice(deviceId: device.id)
-            ])
+            try await bluetoothService.dispatchCommand(RestartDevice(deviceId: device.id))
         }
     }
 
@@ -474,9 +471,7 @@ actor DeviceService: SwiftData.ModelActor {
 
             try await stopOutletsAndWaitForLockoutToExipire(device)
 
-            try await bluetoothService.dispatchCommands([
-                FactoryResetDevice(deviceId: device.id)
-            ])
+            try await bluetoothService.dispatchCommand(FactoryResetDevice(deviceId: device.id))
         }
     }
 
@@ -485,9 +480,7 @@ actor DeviceService: SwiftData.ModelActor {
         try await errorBoundary {
             let device = try getDeviceById(deviceId)
             try await bluetoothService.requestDeviceInformation(deviceId)
-            try await bluetoothService.dispatchCommands([
-                RequestTechnicalInformation(deviceId: device.id)
-            ])
+            try await bluetoothService.dispatchCommand(RequestTechnicalInformation(deviceId: device.id))
         }
     }
     
@@ -498,9 +491,7 @@ actor DeviceService: SwiftData.ModelActor {
 
             try await stopOutletsAndWaitForLockoutToExipire(device)
 
-            try await bluetoothService.dispatchCommands([
-                UnknownCommand(deviceId: device.id)
-            ])
+            try await bluetoothService.dispatchCommand(UnknownCommand(deviceId: device.id))
         }
     }
 }

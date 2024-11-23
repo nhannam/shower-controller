@@ -19,41 +19,36 @@ struct SettingsView: View {
     @State private var editingControllerSettings = false
     @State private var editingWirelessRemoteButtonSettings = false
     
-    @State private var updateCounter: Int64 = 0
-    
     @State private var isShowingConfirmation =  false
     @State private var confirmationAction: (() -> Void)?
     @State private var isSubmitted =  false
 
     var body: some View {
-        Group {
-            ModelUpdatedMonitorViewModifier.RedrawTrigger(updatedCounter: updateCounter)
-            List {
-                Section("Outlets") {
-                    ForEach(device.outlets.sorted(by: { $0.outletSlot < $1.outletSlot })) { outlet in
-                        OutletSettingsListItemView(
-                            action: { selectedOutlet = outlet },
-                            outlet: outlet
-                        )
-                    }
-                }
-                Section("Controller") {
-                    ControllerSettingsListItemView(
-                        action: { editingControllerSettings = true },
-                        device: device
+        List {
+            Section("Outlets") {
+                ForEach(device.outlets.sorted(by: { $0.outletSlot < $1.outletSlot })) { outlet in
+                    OutletSettingsListItemView(
+                        action: { selectedOutlet = outlet },
+                        outlet: outlet
                     )
                 }
-                Section("Remote Button") {
-                    WirelessRemoteButtonSettingsListItemView(
-                        action: { editingWirelessRemoteButtonSettings = true },
-                        device: device
-                    )
-                }
-                
-                Section("Device") {
-                    Button("Restart Device") { triggerAction(restartDevice) }
-                    Button("Factory Reset") { triggerAction(factoryReset) }
-                }
+            }
+            Section("Controller") {
+                ControllerSettingsListItemView(
+                    action: { editingControllerSettings = true },
+                    device: device
+                )
+            }
+            Section("Remote Button") {
+                WirelessRemoteButtonSettingsListItemView(
+                    action: { editingWirelessRemoteButtonSettings = true },
+                    device: device
+                )
+            }
+            
+            Section("Device") {
+                Button("Restart Device") { triggerAction(restartDevice) }
+                Button("Factory Reset") { triggerAction(factoryReset) }
             }
         }
         .sheet(item: $selectedOutlet) { outlet in
@@ -67,9 +62,6 @@ struct SettingsView: View {
             EditWirelessRemoteButtonSettingsView(device: device)
         }
         .navigationTitle("Settings")
-        .monitoringUpdatesOf(
-            [device.persistentModelID] + device.outlets.map({ $0.persistentModelID }),
-            $updateCounter)
         .deviceStatePolling(device.id)
         .suspendable(
             asyncJobs: tools.asyncJobs,

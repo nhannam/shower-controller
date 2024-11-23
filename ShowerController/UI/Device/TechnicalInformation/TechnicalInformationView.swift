@@ -15,13 +15,6 @@ struct TechnicalInformationView: View {
     
     var device: Device
     
-    @State private var updateCounter: Int64 = 0
-    var monitoredEntities: [PersistentIdentifier] {
-        var ids = [device.persistentModelID]
-        ids.compactAppend(device.technicalInformation?.persistentModelID)
-        return ids
-    }
-    
     func makeItem(label: String, value: String) -> some View {
         HStack {
             Text(label)
@@ -36,46 +29,42 @@ struct TechnicalInformationView: View {
     }
     
     var body: some View {
-        Group {
-            ModelUpdatedMonitorViewModifier.RedrawTrigger(updatedCounter: updateCounter)
-            List {
+        List {
+            Section(
+                header: Text("Device Information"),
+                content: {
+                    makeItem(label: "Manufacturer", value: device.manufacturerName)
+                    makeItem(label: "Model Number", value: device.modelNumber)
+                    makeItem(label: "Hardware Revision", value: device.hardwareRevision)
+                    makeItem(label: "Firmware Revision", value: device.firmwareRevision)
+                    makeItem(label: "Serial Number", value: device.serialNumber)
+                }
+            )
+            
+            if let technicalInformation = device.technicalInformation {
                 Section(
-                    header: Text("Device Information"),
+                    header: Text("Valve"),
                     content: {
-                        makeItem(label: "Manufacturer", value: device.manufacturerName)
-                        makeItem(label: "Model Number", value: device.modelNumber)
-                        makeItem(label: "Hardware Revision", value: device.hardwareRevision)
-                        makeItem(label: "Firmware Revision", value: device.firmwareRevision)
-                        makeItem(label: "Serial Number", value: device.serialNumber)
+                        makeItem(label: "Type", value: technicalInformation.valveType)
+                        makeItem(label: "Software Version", value: technicalInformation.valveSoftwareVersion)
                     }
                 )
-                
-                if let technicalInformation = device.technicalInformation {
-                    Section(
-                        header: Text("Valve"),
-                        content: {
-                            makeItem(label: "Type", value: technicalInformation.valveType)
-                            makeItem(label: "Software Version", value: technicalInformation.valveSoftwareVersion)
-                        }
-                    )
-                    Section(
-                        header: Text("UI"),
-                        content: {
-                            makeItem(label: "Type", value: technicalInformation.uiType)
-                            makeItem(label: "Software Version", value: technicalInformation.uiSoftwareVersion)
-                        }
-                    )
-                    Section(
-                        header: Text("Bluetooth"),
-                        content: {
-                            makeItem(label: "Software Version", value: technicalInformation.bluetoothSoftwareVersion)
-                        }
-                    )
-                }
+                Section(
+                    header: Text("UI"),
+                    content: {
+                        makeItem(label: "Type", value: technicalInformation.uiType)
+                        makeItem(label: "Software Version", value: technicalInformation.uiSoftwareVersion)
+                    }
+                )
+                Section(
+                    header: Text("Bluetooth"),
+                    content: {
+                        makeItem(label: "Software Version", value: technicalInformation.bluetoothSoftwareVersion)
+                    }
+                )
             }
         }
         .navigationTitle("Technical Information")
-        .monitoringUpdatesOf(monitoredEntities, $updateCounter)
         .deviceStatePolling(device.id)
         .suspendable(
             asyncJobs: tools.asyncJobs,

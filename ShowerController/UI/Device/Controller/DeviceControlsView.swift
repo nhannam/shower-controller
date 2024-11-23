@@ -17,7 +17,6 @@ struct DeviceControlsView: View {
     
     @State private var deviceLockoutTracker = DeviceLockoutTracker()
     @State private var timer: Timer?
-    @State private var updateCounter: Int64 = 0
 
     private var targetTemperature: Binding<Double> {
         Binding {
@@ -32,7 +31,6 @@ struct DeviceControlsView: View {
     }
     var body: some View {
         Group {
-            ModelUpdatedMonitorViewModifier.RedrawTrigger(updatedCounter: updateCounter)
             let outlet0 = device.outlets.first(where: { $0.outletSlot == Device.outletSlot0 })
             let outlet1 = device.outlets.first(where: { $0.outletSlot == Device.outletSlot1 })
             if let outlet0 {
@@ -79,10 +77,6 @@ struct DeviceControlsView: View {
             }
         }
         .onChange(of: device.updatesLockedOutUntil, initial: true, lockoutTimeChanged)
-        .monitoringUpdatesOf(
-            [device.persistentModelID] + device.outlets.map({ $0.persistentModelID }),
-            $updateCounter
-        )
     }
     
     func temperatureSelected(temperature: Double) {
