@@ -45,7 +45,7 @@ struct Preview<Component: View>: View {
                 await tools.startBluetoothProcessing()
             }
             .environment(tools)
-            .modelContextReloader(modelContext)
+            .monitoModelContextTransactions(modelContext)
         }
         .modelContainer(tools.modelContainer)
         .alertingErrorHandler(tools.errorHandler)

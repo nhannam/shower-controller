@@ -12,6 +12,8 @@ import SwiftUI
 @MainActor
 @Observable
 class Toolbox {
+    static let mainContextAuthor = "mainContextAuthor"
+    
     enum Mode { case live, mock }
     var mode: Mode
 
@@ -110,14 +112,18 @@ class Toolbox {
 }
 
 extension ModelContainer {
+    @MainActor
     static func create(isStoredInMemoryOnly: Bool) throws -> ModelContainer {
-        return try ModelContainer(
+        let modelContainer = try ModelContainer(
             for:
                 Client.self,
                 Device.self,
+                TransactionMonitorPosition.self,
             configurations: ModelConfiguration(
                 isStoredInMemoryOnly: isStoredInMemoryOnly
             )
         )
+        modelContainer.mainContext.author = Toolbox.mainContextAuthor
+        return modelContainer
     }
 }

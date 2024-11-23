@@ -17,18 +17,13 @@ struct PairedClientsView: View {
 
     @State private var selected: PairedClient?
 
-    @State private var updateCounter: Int64 = 0
-    
     var body: some View {
-        Group {
-            ModelUpdatedMonitorViewModifier.RedrawTrigger(updatedCounter: updateCounter)
-            List {
-                ForEach(device.pairedClients.sorted(by: { $0.clientSlot < $1.clientSlot })) { client in
-                    PairedClientListItemView(
-                        action: { selected = client },
-                        pairedClient: client,
-                        isCurrent: device.clientSlot == client.clientSlot)
-                }
+        List {
+            ForEach(device.pairedClients.sorted(by: { $0.clientSlot < $1.clientSlot })) { client in
+                PairedClientListItemView(
+                    action: { selected = client },
+                    pairedClient: client,
+                    isCurrent: device.clientSlot == client.clientSlot)
             }
         }
         .sheet(item: $selected) { pairedClient in
@@ -36,9 +31,6 @@ struct PairedClientsView: View {
         }
         .navigationTitle("Clients")
         .deviceStatePolling(device.id)
-        .monitoringUpdatesOf(
-            [device.persistentModelID] + device.pairedClients.map({ $0.persistentModelID }),
-            $updateCounter)
         .suspendable(
             asyncJobs: tools.asyncJobs,
             onResume: refresh

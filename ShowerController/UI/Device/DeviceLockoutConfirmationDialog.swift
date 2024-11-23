@@ -14,8 +14,6 @@ struct DeviceLockoutConfirmationDialog: ViewModifier {
     var device: Device
     var confirmAction: @MainActor () -> Void
     
-    @State private var updateCounter: Int64 = 0
-    
     func body(content: Content) -> some View {
         var warningText: String {
             switch device.timerState {
@@ -35,17 +33,11 @@ struct DeviceLockoutConfirmationDialog: ViewModifier {
                 actions: {
                     Button("Confirm", action: confirmAction)
                 },
-                message: {
-                    Group {
-                        ModelUpdatedMonitorViewModifier.RedrawTrigger(updatedCounter: updateCounter)
-                        Text(warningText)
-                    }
-                }
+                message: { Text(warningText) }
             )
             .dialogIcon(
                 Image(systemName: "exclamationmark.triangle")
             )
-            .monitoringUpdatesOf([device.persistentModelID], $updateCounter)
     }
 }
 

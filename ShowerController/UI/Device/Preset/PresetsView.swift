@@ -18,26 +18,21 @@ struct PresetsView: View {
     @State private var selected: Preset?
     @State private var isEditing = false
 
-    @State private var updateCounter: Int64 = 0
-
     var body: some View {
-        Group {
-            ModelUpdatedMonitorViewModifier.RedrawTrigger(updatedCounter: updateCounter)
-            List {
-                ForEach(device.presets.sorted(by: { $0.presetSlot < $1.presetSlot })) { preset in
-                    var isDefaultPreset: Bool {
-                        device.defaultPresetSlot == preset.presetSlot
-                    }
-                    
-                    PresetListItemView(
-                        action: {
-                            selected = preset
-                            isEditing = true
-                        },
-                        preset: preset,
-                        isDefault: isDefaultPreset
-                    )
+        List {
+            ForEach(device.presets.sorted(by: { $0.presetSlot < $1.presetSlot })) { preset in
+                var isDefaultPreset: Bool {
+                    device.defaultPresetSlot == preset.presetSlot
                 }
+                
+                PresetListItemView(
+                    action: {
+                        selected = preset
+                        isEditing = true
+                    },
+                    preset: preset,
+                    isDefault: isDefaultPreset
+                )
             }
         }
         .sheet(isPresented: $isEditing) {
@@ -52,9 +47,6 @@ struct PresetsView: View {
             }
         }
         .navigationTitle("Presets")
-        .monitoringUpdatesOf(
-            [device.persistentModelID] + device.presets.map({ $0.persistentModelID }),
-            $updateCounter)
         .deviceStatePolling(device.id)
         .suspendable(
             asyncJobs: tools.asyncJobs,

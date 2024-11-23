@@ -17,8 +17,6 @@ struct OutletButton: View {
     @State private var isShowingPresetSelector = false
     @State private var isSubmitted = false
 
-    @State private var updateCounter: Int64 = 0
-    
     var presets: [Preset] {
         device.presets
             .filter({ $0.outlet.outletSlot == outlet.outletSlot })
@@ -26,28 +24,20 @@ struct OutletButton: View {
     }
 
     var body: some View {
-        Group {
-            ModelUpdatedMonitorViewModifier.RedrawTrigger(updatedCounter: updateCounter)
-            Button(
-                action: toggleOutlet,
-                label: {
-                    OutletTypeImage(
-                        type: outlet.type,
-                        isActive: outlet.isRunning,
-                        resizable: true
-                    )
-                    .scaledToFit()
-                    .onLongPressGesture(perform: { isShowingPresetSelector = !presets.isEmpty })
-                }
-            )
-            .disabled(isSubmitted)
-        }
-        .buttonStyle(.borderless)
-        .disabled(!outlet.isRunning && device.defaultPresetSlot == nil)
-        .monitoringUpdatesOf(
-            [device.persistentModelID, outlet.persistentModelID] + device.presets.map({ $0.persistentModelID }),
-            $updateCounter
+        Button(
+            action: toggleOutlet,
+            label: {
+                OutletTypeImage(
+                    type: outlet.type,
+                    isActive: outlet.isRunning,
+                    resizable: true
+                )
+                .scaledToFit()
+                .onLongPressGesture(perform: { isShowingPresetSelector = !presets.isEmpty })
+            }
         )
+        .disabled(isSubmitted || (!outlet.isRunning && device.defaultPresetSlot == nil))
+        .buttonStyle(.borderless)
         .confirmationDialog("Start Preset", isPresented: $isShowingPresetSelector, titleVisibility: .visible) {
             ForEach(presets) { preset in
                 Button(

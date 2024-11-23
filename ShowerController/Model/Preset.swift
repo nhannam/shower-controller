@@ -53,3 +53,9 @@ class PresetNotificationApplier: PresetNotificationVisitor {
         preset.durationSeconds = notification.durationSeconds
     }
 }
+
+extension Preset: ObservableModel {
+    func observationRegistrar() -> ObservationRegistrar {
+        return _$observationRegistrar
+    }
+}

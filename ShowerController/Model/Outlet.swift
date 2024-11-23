@@ -65,3 +65,9 @@ class OutletNotificationApplier: OutletNotificationVisitor {
         outlet.maximumDurationSeconds = notification.maximumDurationSeconds
     }
 }
+
+extension Outlet: ObservableModel {
+    func observationRegistrar() -> ObservationRegistrar {
+        return _$observationRegistrar
+    }
+}

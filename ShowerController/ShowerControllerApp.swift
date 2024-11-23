@@ -36,7 +36,7 @@ struct ShowerControllerApp: App {
                             await tools.startBluetoothProcessing()
                         }
                         .environment(tools)
-                        .modelContextReloader(tools.modelContainer.mainContext)
+                        .monitoModelContextTransactions(tools.modelContainer.mainContext)
                     }
                     .modelContainer(tools.modelContainer)
                     .alertingErrorHandler(tools.errorHandler)

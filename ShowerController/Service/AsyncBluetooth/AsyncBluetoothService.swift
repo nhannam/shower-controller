@@ -12,9 +12,10 @@ import SwiftData
 import AsyncAlgorithms
 import AsyncBluetooth
 
-@ModelActor
-actor AsyncBluetoothService: BluetoothService {
+// @ModelActor creates a single arg init, which prevents us passing the BluetoothService in
+actor AsyncBluetoothService: ModelActor, BluetoothService {
     private static let logger = LoggerFactory.logger(AsyncBluetoothService.self)
+    private static let author = "AsyncBluetoothService"
 
     private let central: CentralManager = CentralManager()
     
@@ -22,6 +23,17 @@ actor AsyncBluetoothService: BluetoothService {
     // more granular timeout information
     private static let timeoutDuration: Duration = .seconds(5)
     private static let errorBoundaryTimeoutDuration: Duration = .seconds(6)
+
+    nonisolated let modelExecutor: any ModelExecutor
+    nonisolated let modelContainer: ModelContainer
+
+    init(modelContainer: ModelContainer) {
+        let modelContext = ModelContext(modelContainer)
+        modelContext.author = Self.author
+        
+        self.modelExecutor = DefaultSerialModelExecutor(modelContext: modelContext)
+        self.modelContainer = modelContainer
+    }
 
     private func errorBoundary<R: Sendable>(@_inheritActorContext _ block: @escaping @Sendable () async throws -> R?) async throws -> R? {
         do {
