@@ -20,7 +20,7 @@ struct Preview<Component: View>: View {
     
     init(component: @escaping () -> Component) {
         do {
-            self.tools = try Toolbox(.mock)
+            self.tools = try Toolboxes().toolboxes[ToolboxMode.mock]!
             self.component = component
         } catch {
             fatalError("Could not initialize ModelContainer")
@@ -41,15 +41,12 @@ struct Preview<Component: View>: View {
             NavigationStack {
                 component()
             }
-            .task {
-                await tools.startBluetoothProcessing()
-            }
             .environment(tools)
-            .monitoModelContextTransactions(modelContext)
+            .monitorModelContextTransactions()
+            .alertingErrorHandler(tools.errorHandler)
         }
         .modelContainer(tools.modelContainer)
-        .alertingErrorHandler(tools.errorHandler)
-        .asyncJobExecutor(tools.asyncJobs)
+        .task(tools.startProcessing)
     }
     
     func insertClients() {

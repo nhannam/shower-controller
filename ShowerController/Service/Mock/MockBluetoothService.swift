@@ -95,7 +95,9 @@ actor MockBluetoothService: ModelActor, BluetoothService {
 
 actor MockDeviceActor: SwiftData.ModelActor, DeviceCommandVisitor {
     typealias Response = DeviceNotification?
-    
+
+    private static let author = "MockDeviceActor"
+
     nonisolated let modelExecutor: any SwiftData.ModelExecutor
     nonisolated let modelContainer: SwiftData.ModelContainer
     private let pauseTimerDurationSeconds = 300
@@ -112,6 +114,8 @@ actor MockDeviceActor: SwiftData.ModelActor, DeviceCommandVisitor {
 
     init(modelContainer: SwiftData.ModelContainer, deviceId: UUID) throws {
         let modelContext = ModelContext(modelContainer)
+        modelContext.author = Self.author
+        
         self.modelExecutor = DefaultSerialModelExecutor(modelContext: modelContext)
         self.modelContainer = modelContainer
         

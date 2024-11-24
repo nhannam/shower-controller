@@ -31,7 +31,7 @@ import SwiftUICore
 struct ModelContextTransactionMonitor: ViewModifier {
     private static let logger = LoggerFactory.logger(ModelContextTransactionMonitor.self)
 
-    let modelContext: ModelContext
+    @Environment(\.modelContext) private var modelContext: ModelContext
     
     let publisher = NotificationCenter.default
         .publisher(for: ModelContext.didSave, object: nil)
@@ -201,7 +201,7 @@ struct ModelContextTransactionMonitor: ViewModifier {
 }
 
 extension View {
-    func monitoModelContextTransactions(_ modelContext: ModelContext) -> some View {
-        modifier(ModelContextTransactionMonitor(modelContext: modelContext))
+    func monitorModelContextTransactions() -> some View {
+        modifier(ModelContextTransactionMonitor())
     }
 }

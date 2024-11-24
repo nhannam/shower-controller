@@ -9,47 +9,19 @@ import Foundation
 import SwiftData
 import SwiftUI
 
+enum ToolboxMode { case live, mock }
+
+
 @MainActor
 @Observable
-class Toolbox {
+class Toolboxes {
     static let mainContextAuthor = "mainContextAuthor"
     
-    enum Mode { case live, mock }
-    var mode: Mode
+    var toolboxes: [ToolboxMode:Toolbox]
 
-    var navigationPath: NavigationPath
-
-    var asyncJobs: AsyncJobs
-    var errorHandler: AlertingErrorHandler
-
-    private let liveTools: Tools
-    private let mockTools: Tools
-    
-    var tools: Tools {
-        switch mode {
-        case .live:
-            liveTools
-        case .mock:
-            mockTools
-        }
-    }
-    
-    var modelContainer: ModelContainer {
-        return tools.modelContainer
-    }
-    
-    var clientService: ClientService {
-        tools.clientService
-    }
-
-    var deviceService: DeviceService {
-        tools.deviceService
-    }
-
-    
-    init(_ mode: Mode) throws {
+    init() throws {
         let liveModelContainer = try ModelContainer.create(isStoredInMemoryOnly: false)
-        liveTools = Tools(
+        let liveTools = Toolbox(
             modelContainer: liveModelContainer,
             bluetoothService: ManagedReentrancyBluetoothService(
                 bluetoothService: AsyncBluetoothService(modelContainer: liveModelContainer)
@@ -57,17 +29,39 @@ class Toolbox {
         )
 
         let mockModelContainer = try ModelContainer.create(isStoredInMemoryOnly: true)
-        mockTools = Tools(
+        let mockTools = Toolbox(
             modelContainer: mockModelContainer,
             bluetoothService: ManagedReentrancyBluetoothService(
                 bluetoothService: MockBluetoothService(modelContainer: mockModelContainer)
             )
         )
         
-        _mode = mode
-        _asyncJobs = AsyncJobs()
-        _errorHandler = AlertingErrorHandler()
-        _navigationPath = NavigationPath()
+        _toolboxes = [
+            .live: liveTools,
+            .mock: mockTools
+        ]
+    }
+
+}
+
+@MainActor
+@Observable
+class Toolbox {
+    private static let logger = LoggerFactory.logger(Toolbox.self)
+    
+    let modelContainer: ModelContainer
+    let bluetoothService: ManagedReentrancyBluetoothService
+    let deviceService: DeviceService
+    let clientService: ClientService
+    var asyncJobs: AsyncJobs = AsyncJobs()
+    var errorHandler: AlertingErrorHandler = AlertingErrorHandler()
+    var navigationPath = NavigationPath()
+
+    init(modelContainer: ModelContainer, bluetoothService: ManagedReentrancyBluetoothService) {
+        self.modelContainer = modelContainer
+        self.bluetoothService = bluetoothService
+        self.deviceService = DeviceService(modelContainer: modelContainer, bluetoothService: bluetoothService)
+        self.clientService = ClientService(modelContainer: modelContainer)
     }
     
     func alertOnError(_ job: @escaping @MainActor () async throws -> Void) async {
@@ -87,27 +81,18 @@ class Toolbox {
             finally?()
         }
     }
-
-    func navigateHome() {
-        navigationPath.removeLast(navigationPath.count)
-    }
-
-    func startBluetoothProcessing() async {
-        await tools.bluetoothService.startProcessing()
+    
+    func startProcessing() async {
+        Self.logger.debug("Starting async processing")
+        await withTaskGroup(of: Void.self) { group in
+            group.addTask(operation: bluetoothService.startProcessing)
+            group.addTask(operation: asyncJobs.start)
+        }
+        Self.logger.debug("Finished async processing")
     }
     
-    class Tools {
-        let modelContainer: ModelContainer
-        let bluetoothService: ManagedReentrancyBluetoothService
-        let deviceService: DeviceService
-        let clientService: ClientService
-
-        init(modelContainer: ModelContainer, bluetoothService: ManagedReentrancyBluetoothService) {
-            self.modelContainer = modelContainer
-            self.bluetoothService = bluetoothService
-            self.deviceService = DeviceService(modelContainer: modelContainer, bluetoothService: bluetoothService)
-            self.clientService = ClientService(modelContainer: modelContainer)
-        }
+    func navigateHome() {
+        navigationPath.removeLast(navigationPath.count)
     }
 }
 
@@ -123,7 +108,7 @@ extension ModelContainer {
                 isStoredInMemoryOnly: isStoredInMemoryOnly
             )
         )
-        modelContainer.mainContext.author = Toolbox.mainContextAuthor
+        modelContainer.mainContext.author = Toolboxes.mainContextAuthor
         return modelContainer
     }
 }

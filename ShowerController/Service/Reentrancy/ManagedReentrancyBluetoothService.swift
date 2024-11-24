@@ -45,7 +45,7 @@ actor ManagedReentrancyBluetoothService: BluetoothService {
     func startProcessing() async {
         await executionChannel.start()
     }
-    
+
     func disconnectAll() async throws {
         try await errorBoundary {
             try await self.executionChannel.submit {
