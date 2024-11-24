@@ -67,7 +67,7 @@ struct DeviceView: View {
         }
         .deviceStatePolling(device.id)
         .suspendable(
-            asyncJobs: tools.asyncJobs,
+            asyncJobExecutor: tools.asyncJobExecutor,
             onResume: refresh
         )
         .refreshable(action: refresh)

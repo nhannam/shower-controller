@@ -33,7 +33,7 @@ struct PairingView: View {
             .navigationTitle("Pair Shower")
         }
         .suspendable(
-            asyncJobs: tools.asyncJobs,
+            asyncJobExecutor: tools.asyncJobExecutor,
             onSuspend: stopScan,
             onResume: startScan
         )

@@ -1,5 +1,5 @@
 //
-//  AsyncJobExecutorModifier.swift
+//  AsyncJobExecutor.swift
 //  ShowerController
 //
 //  Created by Nigel Hannam on 27/10/2024.
@@ -8,8 +8,8 @@
 import Foundation
 
 @MainActor
-class AsyncJobs {
-    private static let logger = LoggerFactory.logger(AsyncJobs.self)
+class AsyncJobExecutor {
+    private static let logger = LoggerFactory.logger(AsyncJobExecutor.self)
 
     private var stream: AsyncStream<@MainActor () async -> Void>?
     private var continuation: AsyncStream<@MainActor () async -> Void>.Continuation?

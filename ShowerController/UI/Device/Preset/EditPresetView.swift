@@ -37,7 +37,7 @@ struct EditPresetView: View {
     }
     
     private var isValid: Bool {
-        isNameValid && isDurationValid
+        isNameValid && isDurationValid && outlet != nil
     }
 
     var body: some View {
@@ -49,7 +49,9 @@ struct EditPresetView: View {
                     isValid: isNameValid
                 )
                 if let outlet {
-                    OutletTypeLabel(type: outlet.type)
+                    OutletPicker(outlets: device.outlets, selected: $outlet)
+                        .pickerStyle(.segmented)
+
                     if let temperatureRange = outlet.temperatureRange {
                         VStack {
                             Label("Temperature", systemImage: "thermometer")

@@ -48,14 +48,14 @@ extension View {
     }
     
     func suspendable(
-        asyncJobs: AsyncJobs,
+        asyncJobExecutor: AsyncJobExecutor,
         onSuspend: (@MainActor @Sendable () async -> Void)? = nil,
         onResume: (@MainActor @Sendable () async -> Void)? = nil
     ) -> some View {
         modifier(
             SuspendResumeModifier(
-                onSuspend: { if let onSuspend { asyncJobs.submit(onSuspend) } },
-                onResume: { if let onResume { asyncJobs.submit(onResume) } }
+                onSuspend: { if let onSuspend { asyncJobExecutor.submit(onSuspend) } },
+                onResume: { if let onResume { asyncJobExecutor.submit(onResume) } }
             )
         )
     }
