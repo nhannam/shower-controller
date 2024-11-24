@@ -138,8 +138,8 @@ actor DeviceService: ModelActor {
             try await bluetoothService.dispatchCommand(
                 OperateOutletControls(
                     deviceId: device.id,
-                    outletSlot0Running: outletSlot == Device.outletSlot0,
-                    outletSlot1Running: outletSlot == Device.outletSlot1,
+                    outletSlot0Running: outletSlot == Outlet.outletSlot0,
+                    outletSlot1Running: outletSlot == Outlet.outletSlot1,
                     targetTemperature: device.selectedTemperature,
                     timerState: .running
                 )
@@ -153,8 +153,8 @@ actor DeviceService: ModelActor {
             try await bluetoothService.dispatchCommand(
                 OperateOutletControls(
                     deviceId: device.id,
-                    outletSlot0Running: device.getOutletBySlot(outletSlot: Device.outletSlot0)?.isRunning ?? false,
-                    outletSlot1Running: device.getOutletBySlot(outletSlot: Device.outletSlot1)?.isRunning ?? false,
+                    outletSlot0Running: device.getOutletBySlot(outletSlot: Outlet.outletSlot0)?.isRunning ?? false,
+                    outletSlot1Running: device.getOutletBySlot(outletSlot: Outlet.outletSlot1)?.isRunning ?? false,
                     targetTemperature: targetTemperature,
                     timerState: device.timerState
                 )
@@ -407,18 +407,39 @@ actor DeviceService: ModelActor {
         }
     }
     
-    func updateOutletSettings(_ deviceId: UUID, outletSlot: Int, minimumTemperature: Double, maximumTemperature: Double, maximumDurationSeconds: Int) async throws {
+    func updateOutletSettings(_ deviceId: UUID, outletSlot: Int, temperatureRange: ClosedRange<Double>, maximumDurationSeconds: Int) async throws {
         try await errorBoundary {
             let device = try getDeviceById(deviceId)
             
             try await stopOutletsAndWaitForLockoutToExipire(device)
             
-            try await bluetoothService.dispatchCommands([
+            let presetClamping: [DeviceCommand] = device.presets
+                .filter({ $0.outlet.outletSlot == outletSlot })
+                .filter({ preset in
+                    preset.targetTemperature.clampToRange(range: temperatureRange) != preset.targetTemperature ||
+                    preset.durationSeconds > maximumDurationSeconds
+                })
+                .flatMap({ preset in
+                    let arr: [DeviceCommand] = [
+                        UpdatePresetDetails(
+                            deviceId: deviceId,
+                            presetSlot: preset.presetSlot,
+                            name: preset.name,
+                            outletSlot: outletSlot,
+                            targetTemperature: preset.targetTemperature.clampToRange(range: temperatureRange),
+                            durationSeconds: min(preset.durationSeconds, maximumDurationSeconds)
+                        ),
+                        RequestPresetDetails(deviceId: deviceId, presetSlot: preset.presetSlot)
+                    ]
+                    return arr
+                })
+            
+            try await bluetoothService.dispatchCommands(presetClamping + [
                 UpdateOutletSettings(
                     deviceId: device.id,
                     outletSlot: outletSlot,
-                    minimumTemperature: minimumTemperature,
-                    maximumTemperature: maximumTemperature,
+                    minimumTemperature: temperatureRange.lowerBound,
+                    maximumTemperature: temperatureRange.upperBound,
                     maximumDurationSeconds: maximumDurationSeconds
                 ),
                 RequestOutletSettings(deviceId: device.id, outletSlot: outletSlot)

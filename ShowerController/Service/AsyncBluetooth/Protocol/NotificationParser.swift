@@ -98,10 +98,10 @@ final class NotificationParser: Sendable {
 
                 var wirelessRemoteButtonOutletSlotsEnabled: [Int] = []
                 if (payload[1] & BitMasks.outlet0Enabled == BitMasks.outlet0Enabled) {
-                    wirelessRemoteButtonOutletSlotsEnabled.append(Device.outletSlot0)
+                    wirelessRemoteButtonOutletSlotsEnabled.append(Outlet.outletSlot0)
                 }
                 if (payload[1] & BitMasks.outlet1Enabled == BitMasks.outlet1Enabled) {
-                    wirelessRemoteButtonOutletSlotsEnabled.append(Device.outletSlot0)
+                    wirelessRemoteButtonOutletSlotsEnabled.append(Outlet.outletSlot0)
                 }
 
                 let standbyLightingEnabled = (payload[3] & BitMasks.standbyLightingDisabled) != BitMasks.standbyLightingDisabled
@@ -259,7 +259,7 @@ final class NotificationParser: Sendable {
                 // payload[6] - 00
                 // payload[7] - 00
                 name: String(data: payload.dropFirst(8).prefix(while: { $0 != 0x00 }), encoding: .utf8) ?? "",
-                outletSlot: (payload[5] & BitMasks.outlet0Enabled) == BitMasks.outlet0Enabled ? Device.outletSlot0 : Device.outletSlot1,
+                outletSlot: (payload[5] & BitMasks.outlet0Enabled) == BitMasks.outlet0Enabled ? Outlet.outletSlot0 : Outlet.outletSlot1,
                 targetTemperature: Converter.celciusFromData(payload[2]),
                 durationSeconds: Converter.secondsFromData(payload[4])
             )

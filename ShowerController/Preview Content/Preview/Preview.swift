@@ -65,8 +65,8 @@ class PreviewData {
     
     let client = Client(clientId: UUID(), name: "Preview Client", secret: Data([0x00, 0x01, 0x02, 0x03]))
     
-    static let outlet0 = Outlet(outletSlot: Device.outletSlot0, type: .overhead, minimumTemperature: 30, maximumTemperature: 48, maximumDurationSeconds: 1800)
-    static let outlet1 = Outlet(outletSlot: Device.outletSlot1, type: .bath, minimumTemperature: 30, maximumTemperature: 48, maximumDurationSeconds: 1800)
+    static let outlet0 = Outlet(outletSlot: Outlet.outletSlot0, type: .overhead, minimumTemperature: Outlet.minimumPermittedTemperature, maximumTemperature: Outlet.maximumPermittedTemperature, maximumDurationSeconds: Outlet.maximumPermittedDurationSeconds)
+    static let outlet1 = Outlet(outletSlot: Outlet.outletSlot1, type: .bath, minimumTemperature: Outlet.minimumPermittedTemperature, maximumTemperature: Outlet.maximumPermittedTemperature, maximumDurationSeconds: Outlet.maximumPermittedDurationSeconds)
     let device = Device(
         id: UUID(),
         name: "Preview Device",
@@ -79,7 +79,7 @@ class PreviewData {
         outlets: [ outlet0, outlet1 ],
         outletsSwitched: false,
         presets: [
-            Preset(presetSlot: 0, name: "Warm Bath", outlet: outlet1, targetTemperature: 45, durationSeconds: 2420)
+            Preset(presetSlot: 0, name: "Warm Bath", outlet: outlet1, targetTemperature: 45, durationSeconds: 1220)
         ],
         defaultPresetSlot: 0,
         clientSlot: 0,
@@ -107,8 +107,8 @@ class PreviewData {
         id: UUID(),
         name: "Unpaired Device",
         outlets: [
-            Outlet(outletSlot: Device.outletSlot0, type: .overhead),
-            Outlet(outletSlot: Device.outletSlot1, type: .bath)
+            Outlet(outletSlot: Outlet.outletSlot0, type: .overhead),
+            Outlet(outletSlot: Outlet.outletSlot1, type: .bath)
         ]
     )
 }

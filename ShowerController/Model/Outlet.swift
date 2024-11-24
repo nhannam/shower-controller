@@ -15,6 +15,12 @@ enum OutletType: Int, Codable, CaseIterable, Identifiable {
 
 @Model
 class Outlet {
+    static let outletSlot0: Int = 0
+    static let outletSlot1: Int = 1
+    static let minimumPermittedTemperature: Double = 30
+    static let maximumPermittedTemperature: Double = 48
+    static let maximumPermittedDurationSeconds: Int = 30 * 60
+
     #Unique<Outlet>([\.device, \.outletSlot])
     
     @Relationship

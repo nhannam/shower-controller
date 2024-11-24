@@ -26,7 +26,7 @@ struct TemperatureCirclePicker: View {
             }
             let trimCircle = twoPi * 0.12
             let trackColours: [Color] = isEnabled ? [.blue, .red] : [ .secondary ]
-
+            
             CirclePicker(
                 value: $temperature,
                 valueRange: temperatureRange,

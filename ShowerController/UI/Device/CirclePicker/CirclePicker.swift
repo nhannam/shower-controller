@@ -90,8 +90,11 @@ struct CirclePicker<TrackShape: ShapeStyle, Label: View>: View {
                 width: size,
                 height: size
             )
-            .onChange(of: value) {
+            .onChange(of: value, initial: true) {
                 pendingValue = nil
+            }
+            .task {
+                value = value.clampToRange(range: valueRange)
             }
         }
     }

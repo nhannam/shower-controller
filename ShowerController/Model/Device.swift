@@ -13,10 +13,6 @@ enum TimerState: String, Codable { case off, running, paused }
 
 @Model
 class Device {
-    static let minimumPermittedTemperature: Double = 30
-    static let maximumPermittedTemperature: Double = 48
-    static let outletSlot0: Int = 0
-    static let outletSlot1: Int = 1
     private static let numberOfPresetSlots = UInt8(8)
     private static let outletsStoppedLockoutDuration: TimeInterval = TimeInterval(5)
 
@@ -70,7 +66,7 @@ class Device {
     var outletSlotsEnabledForWirelessRemoteButton: [Int] {
         return outlets
             .filter({ $0.isEnabledForWirelessRemoteButton })
-            .map { $0.outletSlot }
+            .map(\.outletSlot)
     }
     
     var defaultPreset: Preset? {
@@ -133,7 +129,7 @@ class Device {
     }
     
     func getNextAvailablePresetSlot() -> UInt8? {
-        let occupiedSlots = presets.map({ $0.presetSlot})
+        let occupiedSlots = presets.map(\.presetSlot)
         return (UInt8(0)..<Device.numberOfPresetSlots)
             .first(where: { !occupiedSlots.contains($0) })
     }
@@ -146,7 +142,7 @@ class Device {
         if let existing = getPresetBySlot(presetSlot) {
             return existing
         }
-        let preset = Preset(presetSlot: presetSlot, name: "", outlet: getOutletBySlot(outletSlot: Device.outletSlot1)!)
+        let preset = Preset(presetSlot: presetSlot, name: "", outlet: getOutletBySlot(outletSlot: Outlet.outletSlot1)!)
         presets.append(preset)
         return preset
     }
@@ -240,7 +236,7 @@ class DeviceNotificatonApplier: DeviceNotificationVisitor {
     }
     
     func visit(_ notification: PresetSlotsNotification) {
-        let existingSlots = device.presets.map({ $0.presetSlot })
+        let existingSlots = device.presets.map(\.presetSlot)
         let newSlots = notification.presetSlots
         
         if (newSlots != existingSlots) {
@@ -304,7 +300,7 @@ class DeviceNotificatonApplier: DeviceNotificationVisitor {
     }
     
     func visit(_ notification: PairedClientSlotsNotification) {
-        let existingSlots = device.pairedClients.map({ $0.clientSlot })
+        let existingSlots = device.pairedClients.map(\.clientSlot)
         let newSlots = notification.pairedClientSlots
         
         if (newSlots != existingSlots) {

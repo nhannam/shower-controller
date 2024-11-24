@@ -41,8 +41,8 @@ actor MockBluetoothService: ModelActor, BluetoothService {
     func startScan() async throws {
         try await Task.sleep(for: .milliseconds(500))
         try self.modelContext.transaction {
-            let outlet0 = Outlet(outletSlot: Device.outletSlot0, type: .overhead, isRunning: false, minimumTemperature: 30, maximumTemperature: 48, maximumDurationSeconds: 1800)
-            let outlet1 = Outlet(outletSlot: Device.outletSlot1, type: .bath, isRunning: false, minimumTemperature: 30, maximumTemperature: 48, maximumDurationSeconds: 1800)
+            let outlet0 = Outlet(outletSlot: Outlet.outletSlot0, type: .overhead, isRunning: false, minimumTemperature: 30, maximumTemperature: 48, maximumDurationSeconds: 1800)
+            let outlet1 = Outlet(outletSlot: Outlet.outletSlot1, type: .bath, isRunning: false, minimumTemperature: 30, maximumTemperature: 48, maximumDurationSeconds: 1800)
             self.modelContext.insert(
                 Device(
                     id: Self.device1Id,
@@ -243,7 +243,7 @@ actor MockDeviceActor: SwiftData.ModelActor, DeviceCommandVisitor {
         return PresetSlotsNotification(
             deviceId: command.deviceId,
             clientSlot: clientSlot,
-            presetSlots: mockDevice.presets.map({ $0.presetSlot }).filter({ $0 != command.presetSlot })
+            presetSlots: mockDevice.presets.map(\.presetSlot).filter({ $0 != command.presetSlot })
         )
     }
     

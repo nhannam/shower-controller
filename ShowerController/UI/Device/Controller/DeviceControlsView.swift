@@ -31,8 +31,8 @@ struct DeviceControlsView: View {
     }
     var body: some View {
         Group {
-            let outlet0 = device.outlets.first(where: { $0.outletSlot == Device.outletSlot0 })
-            let outlet1 = device.outlets.first(where: { $0.outletSlot == Device.outletSlot1 })
+            let outlet0 = device.outlets.first(where: { $0.outletSlot == Outlet.outletSlot0 })
+            let outlet1 = device.outlets.first(where: { $0.outletSlot == Outlet.outletSlot1 })
             if let outlet0 {
                 HStack {
                     Spacer()

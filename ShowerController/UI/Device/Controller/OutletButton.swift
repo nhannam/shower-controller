@@ -20,7 +20,7 @@ struct OutletButton: View {
     var presets: [Preset] {
         device.presets
             .filter({ $0.outlet.outletSlot == outlet.outletSlot })
-            .sorted(by: { $0.presetSlot < $1.presetSlot })
+            .sorted(by: \.presetSlot)
     }
 
     var body: some View {
@@ -33,12 +33,12 @@ struct OutletButton: View {
                     resizable: true
                 )
                 .scaledToFit()
-                .onLongPressGesture(perform: { isShowingPresetSelector = !presets.isEmpty })
+                .onLongPressGesture(perform: { isShowingPresetSelector = true })
             }
         )
         .disabled(isSubmitted || (!outlet.isRunning && device.defaultPresetSlot == nil))
         .buttonStyle(.borderless)
-        .confirmationDialog("Start Preset", isPresented: $isShowingPresetSelector, titleVisibility: .visible) {
+        .confirmationDialog(presets.isEmpty ? "No Presets For Outlet" : "Start Preset", isPresented: $isShowingPresetSelector, titleVisibility: .visible) {
             ForEach(presets) { preset in
                 Button(
                     action: { startPreset(preset.presetSlot) },

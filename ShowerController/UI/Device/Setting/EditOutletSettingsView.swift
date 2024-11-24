@@ -47,7 +47,7 @@ struct EditOutletSettingsView: View {
                                 Label("Minimum", systemImage: "thermometer")
                                 TemperatureCirclePicker(
                                     temperature: $minimumTemperature,
-                                    temperatureRange: Device.minimumPermittedTemperature...Device.maximumPermittedTemperature
+                                    temperatureRange: Outlet.minimumPermittedTemperature...Outlet.maximumPermittedTemperature
                                 )
                                 .frame(width: 150, height: 150)
                             }
@@ -56,7 +56,7 @@ struct EditOutletSettingsView: View {
                                 Label("Maximum", systemImage: "thermometer")
                                 TemperatureCirclePicker(
                                     temperature: $maximumTemperature,
-                                    temperatureRange: Device.minimumPermittedTemperature...Device.maximumPermittedTemperature
+                                    temperatureRange: Outlet.minimumPermittedTemperature...Outlet.maximumPermittedTemperature
                                 )
                                 .frame(width: 150, height: 150)
                             }
@@ -70,7 +70,8 @@ struct EditOutletSettingsView: View {
                     validatingField: {
                         DurationPicker(
                             labelText: "Duration",
-                            seconds: $maximumDurationSeconds
+                            seconds: $maximumDurationSeconds,
+                            maximumSeconds: Outlet.maximumPermittedDurationSeconds
                         )
                         .frame(width: 200, height: 200)
                     },
@@ -118,8 +119,7 @@ struct EditOutletSettingsView: View {
             try await tools.deviceService.updateOutletSettings(
                 device.id,
                 outletSlot: outlet.outletSlot,
-                minimumTemperature: minimumTemperature,
-                maximumTemperature: maximumTemperature,
+                temperatureRange: minimumTemperature...maximumTemperature,
                 maximumDurationSeconds: maximumDurationSeconds
             )
             dismiss()

@@ -23,7 +23,7 @@ struct EditWirelessRemoteButtonSettingsView: View {
     var body: some View {
         NavigationStack {
             Form {
-                ForEach(device.outlets.sorted(by: { $0.outletSlot < $1.outletSlot })) { outlet in
+                ForEach(device.outlets.sorted(by: \.outletSlot)) { outlet in
                     var binding: Binding<Bool> {
                         Binding<Bool>(
                             get: { outletsEnabled[outlet.outletSlot] ?? false },

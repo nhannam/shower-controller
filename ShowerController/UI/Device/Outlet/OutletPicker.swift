@@ -13,7 +13,7 @@ struct OutletPicker: View {
     
     var body: some View {
         Picker("Outlet", selection: $selected) {
-            ForEach(outlets.sorted(by: { $0.outletSlot < $1.outletSlot })) { outlet in
+            ForEach(outlets.sorted(by: \.outletSlot)) { outlet in
                 OutletTypeLabel(type: outlet.type).tag(outlet)
             }
         }

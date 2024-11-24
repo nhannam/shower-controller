@@ -19,7 +19,7 @@ struct PairedClientsView: View {
 
     var body: some View {
         List {
-            ForEach(device.pairedClients.sorted(by: { $0.clientSlot < $1.clientSlot })) { client in
+            ForEach(device.pairedClients.sorted(by: \.clientSlot)) { client in
                 PairedClientListItemView(
                     action: { selected = client },
                     pairedClient: client,

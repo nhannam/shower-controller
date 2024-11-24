@@ -20,7 +20,7 @@ struct PresetsView: View {
 
     var body: some View {
         List {
-            ForEach(device.presets.sorted(by: { $0.presetSlot < $1.presetSlot })) { preset in
+            ForEach(device.presets.sorted(by: \.presetSlot)) { preset in
                 var isDefaultPreset: Bool {
                     device.defaultPresetSlot == preset.presetSlot
                 }

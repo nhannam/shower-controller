@@ -183,7 +183,7 @@ actor AsyncBluetoothService: ModelActor, BluetoothService {
                     let notificationData = PublisherAsyncSequence<Data>(
                         valuesPublisher: await peripheral.characteristicValueUpdatedPublisher
                             .filter { $0.characteristic.uuid == Characteristic.CHARACTERISTIC_NOTIFICATIONS }
-                            .compactMap { $0.value }
+                            .compactMap(\.value)
                     )
                     let notificationParser = NotificationParser()
                     
@@ -283,8 +283,8 @@ actor AsyncBluetoothService: ModelActor, BluetoothService {
                                 id: peripheral.identifier,
                                 name: peripheral.name ?? "Unknown",
                                 outlets: [
-                                    Outlet(outletSlot: 0, type: .overhead),
-                                    Outlet(outletSlot: 1, type: .bath)
+                                    Outlet(outletSlot: Outlet.outletSlot0, type: .overhead),
+                                    Outlet(outletSlot: Outlet.outletSlot1, type: .bath)
                                 ]
                             )
                         )

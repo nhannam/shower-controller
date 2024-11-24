@@ -92,8 +92,8 @@ extension CommandDispatcher: DeviceCommandVisitor {
     }
     
     func visit(_ command: UpdateWirelessRemoteButtonSettings) async throws -> Void {
-        let outlet0: UInt8 = command.outletSlotsEnabled.contains(Device.outletSlot0) ? BitMasks.outlet0Enabled : 0x00
-        let outlet1: UInt8 = command.outletSlotsEnabled.contains(Device.outletSlot1) ? BitMasks.outlet1Enabled : 0x00
+        let outlet0: UInt8 = command.outletSlotsEnabled.contains(Outlet.outletSlot0) ? BitMasks.outlet0Enabled : 0x00
+        let outlet1: UInt8 = command.outletSlotsEnabled.contains(Outlet.outletSlot1) ? BitMasks.outlet1Enabled : 0x00
         try await writeData(Data([clientSlot, 0xbe, 0x02, 0x01, outlet0 | outlet1 ]), clientSecret: clientSecret)
     }
     
@@ -115,7 +115,7 @@ extension CommandDispatcher: DeviceCommandVisitor {
         // 00 b0 18
         // 00 01 c2 64 84 02 00 00
         // NAME: 57 61 72 6d 20 42 61 74 68 00 00 00 00 00 00 00
-        let outletByte = command.outletSlot == Device.outletSlot0 ? BitMasks.outlet0Enabled : BitMasks.outlet1Enabled
+        let outletByte = command.outletSlot == Outlet.outletSlot0 ? BitMasks.outlet0Enabled : BitMasks.outlet1Enabled
         let payload = Data([
             clientSlot, 0xb0, 0x18,
             command.presetSlot, 0x01,
@@ -156,14 +156,14 @@ extension CommandDispatcher: DeviceCommandVisitor {
     }
     
     func visit(_ command: RequestOutletSettings) async throws {
-        let commandType: UInt8 = command.outletSlot == Device.outletSlot0 ? 0x0f : 0x10
+        let commandType: UInt8 = command.outletSlot == Outlet.outletSlot0 ? 0x0f : 0x10
         try await writeData(Data([ clientSlot, commandType, 0x00 ]), clientSecret: clientSecret)
     }
     
     
     func visit(_ command: UpdateOutletSettings) async throws {
-        let commandType: UInt8 = command.outletSlot == Device.outletSlot0 ? 0x8f : 0x90
-        let outletFlag: UInt8 = command.outletSlot == Device.outletSlot0 ? 0x00 : 0x04
+        let commandType: UInt8 = command.outletSlot == Outlet.outletSlot0 ? 0x8f : 0x90
+        let outletFlag: UInt8 = command.outletSlot == Outlet.outletSlot0 ? 0x00 : 0x04
         
         try await writeData(
             Data([

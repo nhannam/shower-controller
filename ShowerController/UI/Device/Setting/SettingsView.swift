@@ -26,7 +26,7 @@ struct SettingsView: View {
     var body: some View {
         List {
             Section("Outlets") {
-                ForEach(device.outlets.sorted(by: { $0.outletSlot < $1.outletSlot })) { outlet in
+                ForEach(device.outlets.sorted(by: \.outletSlot)) { outlet in
                     OutletSettingsListItemView(
                         action: { selectedOutlet = outlet },
                         outlet: outlet

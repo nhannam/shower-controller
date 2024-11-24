@@ -13,7 +13,7 @@ struct DurationPicker: View {
     var labelText: String
     @Binding var seconds: Int
     
-    var maximumSeconds = 30 * SECONDS_PER_MINUTE
+    var maximumSeconds: Int
     
     private let minutesGranularity: Int = 1
     private let secondsGranularity: Int = 10
@@ -64,6 +64,7 @@ struct DurationPicker: View {
     @Previewable @State var seconds = 100
     DurationPicker(
         labelText: "Duration",
-        seconds: $seconds
+        seconds: $seconds,
+        maximumSeconds: Outlet.maximumPermittedDurationSeconds
     )
 }

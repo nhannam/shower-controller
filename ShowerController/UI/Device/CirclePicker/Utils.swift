@@ -11,22 +11,16 @@ let twoPi: Double = .pi * 2
 let halfPi: Double = .pi / 2
 
 extension ClosedRange where Bound == Double {
-    var range: Double {
+    var rangeSize: Double {
         upperBound - lowerBound
     }
 
     func valueToFraction(_ value: Double) -> Double {
-        (value - lowerBound) / range
+        ((value - lowerBound) / rangeSize).clampToRange(range: 0...1)
     }
     
     func fractionToValue(_ fraction: Double) -> Double {
-        Swift.max(
-            Swift.min(
-                (fraction * range) + lowerBound,
-                upperBound
-            ),
-            lowerBound
-        )
+        return ((fraction * rangeSize) + lowerBound).clampToRange(range: self)
     }
 }
 

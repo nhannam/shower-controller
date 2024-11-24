@@ -63,19 +63,21 @@ struct EditPresetView: View {
                         }
                         .frame(maxWidth: .infinity, alignment: .center)
                     }
+                    
+                    ValidatingView(
+                        validatingField: {
+                            DurationPicker(
+                                labelText: "Duration",
+                                seconds: $durationSeconds,
+                                maximumSeconds: outlet.maximumDurationSeconds
+                            )
+                            .frame(width: 200, height: 200)
+                        },
+                        validationText: "Greater than zero",
+                        isValid: isDurationValid
+                    )
+                    .frame(maxWidth: .infinity, alignment: .center)
                 }
-                ValidatingView(
-                    validatingField: {
-                        DurationPicker(
-                            labelText: "Duration",
-                            seconds: $durationSeconds
-                        )
-                        .frame(width: 200, height: 200)
-                    },
-                    validationText: "Greater than zero",
-                    isValid: isDurationValid
-                )
-                .frame(maxWidth: .infinity, alignment: .center)
 
                 let isDefault = preset?.presetSlot == device.defaultPresetSlot
                 if !isDefault {
@@ -110,7 +112,7 @@ struct EditPresetView: View {
                 outlet = preset.outlet
                 targetTemperature = preset.targetTemperature
                 durationSeconds = preset.durationSeconds
-            } else if let outlet1 = device.getOutletBySlot(outletSlot: Device.outletSlot1) {
+            } else if let outlet1 = device.getOutletBySlot(outletSlot: Outlet.outletSlot1) {
                 outlet = outlet1
                 targetTemperature = outlet1.minimumTemperature
             }
