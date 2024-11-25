@@ -180,7 +180,7 @@ struct ModelContextTransactionMonitor: ViewModifier {
                     case let updatedAttribute as KeyPath<Entity, TechnicalInformation?>:
                         fireUpdate(observationRegistrar: observationRegistrar, entity: model, keyPath: updatedAttribute)
                         
-                    case let updatedAttribute as KeyPath<Entity, TimerState>:
+                    case let updatedAttribute as KeyPath<Entity, RunningState>:
                         fireUpdate(observationRegistrar: observationRegistrar, entity: model, keyPath: updatedAttribute)
                         
                     case let updatedAttribute as KeyPath<Entity, UInt8>:

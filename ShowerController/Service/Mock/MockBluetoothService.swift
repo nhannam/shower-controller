@@ -41,8 +41,8 @@ actor MockBluetoothService: ModelActor, BluetoothService {
     func startScan() async throws {
         try await Task.sleep(for: .milliseconds(500))
         try self.modelContext.transaction {
-            let outlet0 = Outlet(outletSlot: Outlet.outletSlot0, type: .overhead, isRunning: false, minimumTemperature: 30, maximumTemperature: 48, maximumDurationSeconds: 1800)
-            let outlet1 = Outlet(outletSlot: Outlet.outletSlot1, type: .bath, isRunning: false, minimumTemperature: 30, maximumTemperature: 48, maximumDurationSeconds: 1800)
+            let outlet0 = Outlet(outletSlot: Outlet.outletSlot0, type: .overhead, isRunning: false, minimumTemperature: Outlet.minimumPermittedTemperature, maximumTemperature: Outlet.maximumPermittedTemperature, maximumDurationSeconds: Outlet.maximumPermittedDurationSeconds)
+            let outlet1 = Outlet(outletSlot: Outlet.outletSlot1, type: .bath, isRunning: false, minimumTemperature: Outlet.minimumPermittedTemperature, maximumTemperature: Outlet.maximumPermittedTemperature, maximumDurationSeconds: Outlet.maximumPermittedDurationSeconds)
             self.modelContext.insert(
                 Device(
                     id: Self.device1Id,
@@ -72,8 +72,8 @@ actor MockBluetoothService: ModelActor, BluetoothService {
                         bluetoothSoftwareVersion: 4
                     ),
                     standbyLightingEnabled: true,
-                    timerState: .off,
-                    lastTimerStateReceived: Date.distantPast,
+                    runningState: .off,
+                    lastRunningStateReceived: Date.distantPast,
                     updatesLockedOutUntil: Date.distantPast,
                     selectedTemperature: 42,
                     targetTemperature: 42,
@@ -109,7 +109,7 @@ actor MockDeviceActor: SwiftData.ModelActor, DeviceCommandVisitor {
     }
     
     var outlet0MaxDuration: Int {
-        mockDevice.getOutletBySlot(outletSlot: 0)?.maximumDurationSeconds ?? 1800
+        mockDevice.getOutletBySlot(outletSlot: Outlet.outletSlot0)?.maximumDurationSeconds ?? 1800
     }
 
     init(modelContainer: SwiftData.ModelContainer, deviceId: UUID) throws {
@@ -170,21 +170,24 @@ actor MockDeviceActor: SwiftData.ModelActor, DeviceCommandVisitor {
     }
     
     func visit(_ command: RequestState) async throws -> Response {
-        let newTimerState: TimerState
+        let newRunningState: RunningState
         let newSecondsRemaining: Int
         
         let decrementedTimeRemaining = max(0, mockDevice.secondsRemaining - 1)
 
-        switch mockDevice.timerState {
+        switch mockDevice.runningState {
         case .off:
-            newTimerState = .off
+            newRunningState = .off
             newSecondsRemaining = outlet0MaxDuration
         case .paused:
-            newTimerState = mockDevice.secondsRemaining > 0 ? .paused : .off
-            newSecondsRemaining = newTimerState == .paused ? decrementedTimeRemaining : outlet0MaxDuration
+            newRunningState = mockDevice.secondsRemaining > 0 ? .paused : .off
+            newSecondsRemaining = newRunningState == .paused ? decrementedTimeRemaining : outlet0MaxDuration
         case .running:
-            newTimerState = mockDevice.secondsRemaining > 0 ? .running : .paused
-            newSecondsRemaining = newTimerState == .running ? decrementedTimeRemaining : pauseTimerDurationSeconds
+            newRunningState = mockDevice.secondsRemaining > 0 ? .running : .paused
+            newSecondsRemaining = newRunningState == .running ? decrementedTimeRemaining : pauseTimerDurationSeconds
+        case .cold:
+            newRunningState = mockDevice.secondsRemaining > 0 ? .running : .paused
+            newSecondsRemaining = newRunningState == .cold ? decrementedTimeRemaining : pauseTimerDurationSeconds
         }
 
         return DeviceStateNotification(
@@ -192,10 +195,10 @@ actor MockDeviceActor: SwiftData.ModelActor, DeviceCommandVisitor {
             clientSlot: clientSlot,
             targetTemperature: mockDevice.targetTemperature,
             actualTemperature: mockDevice.actualTemperature,
-            outletSlot0IsRunning: newTimerState == .running ? mockDevice.getOutletBySlot(outletSlot: 0)?.isRunning ?? false : false,
-            outletSlot1IsRunning: newTimerState == .running ? mockDevice.getOutletBySlot(outletSlot: 1)?.isRunning ?? false : false,
+            outletSlot0IsRunning: newRunningState == .running ? mockDevice.getOutletBySlot(outletSlot: Outlet.outletSlot0)?.isRunning ?? false : false,
+            outletSlot1IsRunning: newRunningState == .running ? mockDevice.getOutletBySlot(outletSlot: Outlet.outletSlot1)?.isRunning ?? false : false,
             secondsRemaining: newSecondsRemaining,
-            timerState: newTimerState
+            runningState: newRunningState
         )
     }
     
@@ -258,7 +261,7 @@ actor MockDeviceActor: SwiftData.ModelActor, DeviceCommandVisitor {
                 outletSlot0IsRunning: false,
                 outletSlot1IsRunning: true,
                 secondsRemaining: preset.durationSeconds,
-                timerState: .running
+                runningState: .running
             )
         } else {
             return nil
@@ -268,9 +271,9 @@ actor MockDeviceActor: SwiftData.ModelActor, DeviceCommandVisitor {
     func visit(_ command: OperateOutletControls) async throws -> Response {
         
         let newSecondsRemaining: Int
-        if (command.timerState != mockDevice.timerState) {
-            switch command.timerState {
-            case .off, .running:
+        if (command.runningState != mockDevice.runningState) {
+            switch command.runningState {
+            case .off, .running, .cold:
                 newSecondsRemaining = outlet0MaxDuration
             case .paused:
                 newSecondsRemaining = pauseTimerDurationSeconds
@@ -288,7 +291,7 @@ actor MockDeviceActor: SwiftData.ModelActor, DeviceCommandVisitor {
             outletSlot0IsRunning: command.outletSlot0Running,
             outletSlot1IsRunning: command.outletSlot1Running,
             secondsRemaining: newSecondsRemaining,
-            timerState: command.timerState
+            runningState: command.runningState
         )
     }
     

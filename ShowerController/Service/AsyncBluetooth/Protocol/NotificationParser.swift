@@ -139,7 +139,7 @@ final class NotificationParser: Sendable {
                 outletSlot0IsRunning: payload[5] == 0x64,
                 outletSlot1IsRunning: payload[6] == 0x64,
                 secondsRemaining: Converter.secondsFromData(payload.subdata(in: 7..<9)),
-                timerState: Converter.timerStateFromData(payload[0])
+                runningState: Converter.runningStateFromData(payload[0])
                 // payload[9] this seems to be a counter of sucessfull operations that loops from 0x09 through 0x0f
             )
 
@@ -161,7 +161,7 @@ final class NotificationParser: Sendable {
                     outletSlot0IsRunning: payload[6] == 0x64,
                     outletSlot1IsRunning: payload[7] == 0x64,
                     secondsRemaining: Converter.secondsFromData(payload.subdata(in: 8..<10)),
-                    timerState: Converter.timerStateFromData(payload[1])
+                    runningState: Converter.runningStateFromData(payload[1])
                     // payload[10] this seems to be a counter of sucessfull operations that loops from 0x09 through 0x0f
                 )
             case 0x00, 0x04, 0x08:

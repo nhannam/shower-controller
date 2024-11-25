@@ -16,12 +16,12 @@ struct DeviceLockoutConfirmationDialog: ViewModifier {
     
     func body(content: Content) -> some View {
         var warningText: String {
-            switch device.timerState {
-            case .running:
+            switch device.runningState {
+            case .running, .cold:
                 "Water flow will be stopped and there will be a 5 second delay before the operation completes"
             case .paused:
                 "There will be a 5 second delay before the operation completes"
-            default:
+            case .off:
                 "Proceed?"
             }
         }

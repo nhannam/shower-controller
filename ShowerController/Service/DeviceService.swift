@@ -141,7 +141,7 @@ actor DeviceService: ModelActor {
                     outletSlot0Running: outletSlot == Outlet.outletSlot0,
                     outletSlot1Running: outletSlot == Outlet.outletSlot1,
                     targetTemperature: device.selectedTemperature,
-                    timerState: .running
+                    runningState: .running
                 )
             )
         }
@@ -156,7 +156,7 @@ actor DeviceService: ModelActor {
                     outletSlot0Running: device.getOutletBySlot(outletSlot: Outlet.outletSlot0)?.isRunning ?? false,
                     outletSlot1Running: device.getOutletBySlot(outletSlot: Outlet.outletSlot1)?.isRunning ?? false,
                     targetTemperature: targetTemperature,
-                    timerState: device.timerState
+                    runningState: device.runningState
                 )
             )
         }
@@ -179,7 +179,7 @@ actor DeviceService: ModelActor {
                    outletSlot1Running: false,
                    targetTemperature: device.selectedTemperature,
                    // Follow controller behaviour by settin to paused rather than stopped
-                   timerState: .paused
+                   runningState: .paused
                )
             )
         }
@@ -232,7 +232,7 @@ actor DeviceService: ModelActor {
                    outletSlot1Running: false,
                    targetTemperature: device.selectedTemperature,
                    // Move to off state
-                   timerState: .off
+                   runningState: .off
                )
             )
         }

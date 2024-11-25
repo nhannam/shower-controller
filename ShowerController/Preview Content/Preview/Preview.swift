@@ -95,8 +95,8 @@ class PreviewData {
             bluetoothSoftwareVersion: 4
         ),
         standbyLightingEnabled: true,
-        timerState: .off,
-        lastTimerStateReceived: Date.distantPast,
+        runningState: .off,
+        lastRunningStateReceived: Date.distantPast,
         updatesLockedOutUntil: Date.distantPast,
         selectedTemperature: 42,
         targetTemperature: 42,

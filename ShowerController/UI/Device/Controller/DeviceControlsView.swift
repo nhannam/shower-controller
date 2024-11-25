@@ -20,9 +20,10 @@ struct DeviceControlsView: View {
 
     private var targetTemperature: Binding<Double> {
         Binding {
-            return if device.timerState == .running {
+            return switch device.runningState {
+            case .running, .cold:
                 device.targetTemperature
-            } else {
+            case .paused, .off:
                 device.selectedTemperature
             }
         } set: { updatedTemperature in
@@ -42,7 +43,7 @@ struct DeviceControlsView: View {
                             DurationText(
                                 seconds: device.secondsRemaining
                             )
-                            .foregroundStyle(device.timerState == .paused ? .gray : .black)
+                            .foregroundStyle(device.runningState == .paused ? .gray : .black)
                             .frame(alignment: .top)
                             .font(.largeTitle)
                             

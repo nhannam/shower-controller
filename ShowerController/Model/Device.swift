@@ -9,7 +9,7 @@ import Foundation
 import SwiftData
 import CoreBluetooth
 
-enum TimerState: String, Codable { case off, running, paused }
+enum RunningState: String, Codable { case off, running, cold, paused }
 
 @Model
 class Device {
@@ -44,8 +44,8 @@ class Device {
     
     fileprivate(set) var standbyLightingEnabled: Bool
     
-    private(set) var timerState: TimerState
-    fileprivate(set) var lastTimerStateReceived: Date
+    private(set) var runningState: RunningState
+    fileprivate(set) var lastRunningStateReceived: Date
     
     private(set) var updatesLockedOutUntil: Date
 
@@ -60,7 +60,7 @@ class Device {
     }
     
     var isTimerRunning: Bool {
-        timerState != .off
+        runningState != .off
     }
     
     var outletSlotsEnabledForWirelessRemoteButton: [Int] {
@@ -91,8 +91,8 @@ class Device {
         pairedClients: [PairedClient] = [],
         technicalInformation: TechnicalInformation? = nil,
         standbyLightingEnabled: Bool = true,
-        timerState: TimerState = TimerState.off,
-        lastTimerStateReceived: Date = Date.distantPast,
+        runningState: RunningState = RunningState.off,
+        lastRunningStateReceived: Date = Date.distantPast,
         updatesLockedOutUntil: Date = Date.distantPast,
         selectedTemperature: Double = 0,
         targetTemperature: Double = 0,
@@ -115,8 +115,8 @@ class Device {
         self.pairedClients = pairedClients
         self.technicalInformation = technicalInformation
         self.standbyLightingEnabled = standbyLightingEnabled
-        self.timerState = timerState
-        self.lastTimerStateReceived = lastTimerStateReceived
+        self.runningState = runningState
+        self.lastRunningStateReceived = lastRunningStateReceived
         self.updatesLockedOutUntil = updatesLockedOutUntil
         self.selectedTemperature = selectedTemperature
         self.targetTemperature = targetTemperature
@@ -178,22 +178,22 @@ class Device {
         }
     }
     
-    fileprivate func updateTimerState(_ newTimerState: TimerState) {
+    fileprivate func updateRunningState(_ newRunningState: RunningState) {
         let now = Date()
         
-        if timerState != newTimerState {
-            timerState = newTimerState
+        if runningState != newRunningState {
+            runningState = newRunningState
             
             // If it's a while since we had a timer update, try to avoid locking the controls
             // out unecesarily.
-            let isLastTimerStateReceivedRecent = now < lastTimerStateReceived + (2 * Self.outletsStoppedLockoutDuration)
+            let isLastRunningStateReceivedRecent = now < lastRunningStateReceived + (2 * Self.outletsStoppedLockoutDuration)
 
-            if newTimerState == .off && isLastTimerStateReceivedRecent  {
+            if newRunningState == .off && isLastRunningStateReceivedRecent  {
                 updatesLockedOutUntil = Date() + Self.outletsStoppedLockoutDuration
             }
         }
         
-        lastTimerStateReceived = now
+        lastRunningStateReceived = now
     }
 }
 
@@ -280,7 +280,7 @@ class DeviceNotificatonApplier: DeviceNotificationVisitor {
         device.getOutletBySlot(outletSlot: 0)?.isRunning = notification.outletSlot0IsRunning
         device.getOutletBySlot(outletSlot: 1)?.isRunning = notification.outletSlot1IsRunning
         device.secondsRemaining = notification.secondsRemaining
-        device.updateTimerState(notification.timerState)
+        device.updateRunningState(notification.runningState)
     }
     
     func visit(_ notification: ControlsOperatedNotification) {
@@ -292,7 +292,7 @@ class DeviceNotificatonApplier: DeviceNotificationVisitor {
         device.getOutletBySlot(outletSlot: 0)?.isRunning = notification.outletSlot0IsRunning
         device.getOutletBySlot(outletSlot: 1)?.isRunning = notification.outletSlot1IsRunning
         device.secondsRemaining = notification.secondsRemaining
-        device.updateTimerState(notification.timerState)
+        device.updateRunningState(notification.runningState)
     }
     
     func visit(_ notification: DeviceNicknameNotification) {

@@ -106,7 +106,7 @@ struct DeviceStateNotification: DeviceNotification {
     let outletSlot0IsRunning: Bool
     let outletSlot1IsRunning: Bool
     let secondsRemaining: Int
-    let timerState: TimerState
+    let runningState: RunningState
 
     func accept(_ visitor: any DeviceNotificationVisitor) {
         visitor.visit(self)
@@ -122,7 +122,7 @@ struct ControlsOperatedNotification: DeviceNotification {
     let outletSlot0IsRunning: Bool
     let outletSlot1IsRunning: Bool
     let secondsRemaining: Int
-    let timerState: TimerState
+    let runningState: RunningState
     
     func accept(_ visitor: any DeviceNotificationVisitor) {
         visitor.visit(self)

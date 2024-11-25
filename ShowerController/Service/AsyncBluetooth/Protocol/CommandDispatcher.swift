@@ -145,7 +145,7 @@ extension CommandDispatcher: DeviceCommandVisitor {
                 clientSlot,
                 0x87,
                 0x05,
-                Converter.timerStateToData(command.timerState),
+                Converter.runningStateToData(command.runningState),
                 0x01,
                 Converter.celciusToData(command.targetTemperature),
                 command.outletSlot0Running ? 0x64 : 0x00,

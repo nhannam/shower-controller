@@ -9,11 +9,11 @@ import Foundation
 
 class Converter {
     static func celciusFromData(_ data: UInt8) -> Double {
-        return Double((Int(256) + Int(data)) / 10)
+        return (Double(Int(256) + Int(data)) / 10).rounded()
     }
     
     static func celciusToData(_ celcius: Double) -> UInt8 {
-        return UInt8(round((celcius * 10) - 256))
+        return UInt8(((celcius * 10) - 256).rounded())
     }
 
     static func secondsFromData(_ data: Data) -> Int {
@@ -28,8 +28,10 @@ class Converter {
         return UInt8(seconds / 10)
     }
     
-    static func timerStateFromData(_ data: UInt8) -> TimerState {
+    static func runningStateFromData(_ data: UInt8) -> RunningState {
         switch data {
+        case 0x05:
+            return .cold
         case 0x03:
             return .paused
         case 0x01:
@@ -42,8 +44,10 @@ class Converter {
         }
     }
     
-    static func timerStateToData(_ timerState: TimerState) -> UInt8 {
-        switch timerState {
+    static func runningStateToData(_ runningState: RunningState) -> UInt8 {
+        switch runningState {
+        case .cold:
+            return 0x05
         case .paused:
             return 0x03
         case .running:
