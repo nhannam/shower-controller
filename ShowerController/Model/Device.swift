@@ -13,6 +13,8 @@ enum RunningState: String, Codable { case off, running, cold, paused }
 
 @Model
 class Device {
+    static let durationSecondsSelectionSteps = 10
+    static let temperatureSteps = 0.1
     private static let numberOfPresetSlots = UInt8(8)
     private static let outletsStoppedLockoutDuration: TimeInterval = TimeInterval(5)
 
@@ -184,7 +186,7 @@ class Device {
         if runningState != newRunningState {
             runningState = newRunningState
             
-            // If it's a while since we had a timer update, try to avoid locking the controls
+            // If it's a while since we had a state update, try to avoid locking the controls
             // out unecesarily.
             let isLastRunningStateReceivedRecent = now < lastRunningStateReceived + (2 * Self.outletsStoppedLockoutDuration)
 
@@ -277,8 +279,8 @@ class DeviceNotificatonApplier: DeviceNotificationVisitor {
         }
         device.targetTemperature = notification.targetTemperature
         device.actualTemperature = notification.actualTemperature
-        device.getOutletBySlot(outletSlot: 0)?.isRunning = notification.outletSlot0IsRunning
-        device.getOutletBySlot(outletSlot: 1)?.isRunning = notification.outletSlot1IsRunning
+        device.getOutletBySlot(outletSlot: Outlet.outletSlot0)?.isRunning = notification.outletSlot0IsRunning
+        device.getOutletBySlot(outletSlot: Outlet.outletSlot1)?.isRunning = notification.outletSlot1IsRunning
         device.secondsRemaining = notification.secondsRemaining
         device.updateRunningState(notification.runningState)
     }
@@ -289,8 +291,8 @@ class DeviceNotificatonApplier: DeviceNotificationVisitor {
         }
         device.targetTemperature = notification.targetTemperature
         device.actualTemperature = notification.actualTemperature
-        device.getOutletBySlot(outletSlot: 0)?.isRunning = notification.outletSlot0IsRunning
-        device.getOutletBySlot(outletSlot: 1)?.isRunning = notification.outletSlot1IsRunning
+        device.getOutletBySlot(outletSlot: Outlet.outletSlot0)?.isRunning = notification.outletSlot0IsRunning
+        device.getOutletBySlot(outletSlot: Outlet.outletSlot1)?.isRunning = notification.outletSlot1IsRunning
         device.secondsRemaining = notification.secondsRemaining
         device.updateRunningState(notification.runningState)
     }

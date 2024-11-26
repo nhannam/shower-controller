@@ -17,15 +17,15 @@ struct EditOutletSettingsView: View {
 
     var outlet: Outlet
 
-    @State private var minimumTemperature: Double = 0
-    @State private var maximumTemperature: Double = 0
-    @State private var maximumDurationSeconds: Int = 0
+    @State private var minimumTemperature: Double = Outlet.minimumPermittedTemperature
+    @State private var maximumTemperature: Double = Outlet.maximumPermittedTemperature
+    @State private var maximumDurationSeconds: Int = Outlet.maximumPermittedDurationSeconds
 
     @State private var isShowingConfirmation =  false
     @State private var isSubmitted =  false
-
+    
     private var isTemperatureRangeValid: Bool {
-        return minimumTemperature < maximumTemperature
+        minimumTemperature < maximumTemperature
     }
 
     private var isMaximumDurationValid: Bool {
@@ -44,21 +44,13 @@ struct EditOutletSettingsView: View {
                         HStack {
                             Spacer()
                             VStack {
-                                Label("Minimum", systemImage: "thermometer")
-                                TemperatureCirclePicker(
-                                    temperature: $minimumTemperature,
-                                    temperatureRange: Outlet.minimumPermittedTemperature...Outlet.maximumPermittedTemperature
+                                Label("Temperature Range", systemImage: "thermometer")
+                                TemperatureRangeCirclePicker(
+                                    lowerTemperature: $minimumTemperature,
+                                    upperTemperature: $maximumTemperature,
+                                    permittedRange: Outlet.minimumPermittedTemperature...Outlet.maximumPermittedTemperature
                                 )
-                                .frame(width: 150, height: 150)
-                            }
-                            Spacer()
-                            VStack {
-                                Label("Maximum", systemImage: "thermometer")
-                                TemperatureCirclePicker(
-                                    temperature: $maximumTemperature,
-                                    temperatureRange: Outlet.minimumPermittedTemperature...Outlet.maximumPermittedTemperature
-                                )
-                                .frame(width: 150, height: 150)
+                                .frame(width: 200, height: 200)
                             }
                             Spacer()
                         }
@@ -69,7 +61,7 @@ struct EditOutletSettingsView: View {
                 ValidatingView(
                     validatingField: {
                         DurationPicker(
-                            labelText: "Duration",
+                            labelText: "Max Duration",
                             seconds: $maximumDurationSeconds,
                             maximumSeconds: Outlet.maximumPermittedDurationSeconds
                         )

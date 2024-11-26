@@ -12,7 +12,7 @@ struct TemperatureText: View {
 
     private let temperatureStyle: Measurement<UnitTemperature>.FormatStyle =
         .measurement(
-            numberFormatStyle: .number.precision(.fractionLength(0...1))
+            numberFormatStyle: .number.precision(.fractionLength(0))
         )
 
 

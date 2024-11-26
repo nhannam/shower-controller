@@ -8,24 +8,24 @@
 import Foundation
 
 class Converter {
-    static func celciusFromData(_ data: UInt8) -> Double {
-        return (Double(Int(256) + Int(data)) / 10).rounded()
+    static func celciusFromData(_ data: Data) -> Double {
+        return Double(UInt16(data[0]) << 8 | UInt16(data[1])) * Device.temperatureSteps
     }
     
-    static func celciusToData(_ celcius: Double) -> UInt8 {
-        return UInt8(((celcius * 10) - 256).rounded())
+    static func celciusToData(_ celcius: Double) -> Data {
+        Data(bytesFrom: UInt16((celcius / Device.temperatureSteps).rounded()).bigEndian)
     }
 
     static func secondsFromData(_ data: Data) -> Int {
-        return Int(UInt16(data[0])<<8 | UInt16(data[1]))
+        return Int(UInt16(data[0]) << 8 | UInt16(data[1]))
     }
 
     static func secondsFromData(_ data: UInt8) -> Int {
-        return Int(Int(data) * 10)
+        return Int(data) * Device.durationSecondsSelectionSteps
     }
 
     static func secondsToData(_ seconds: Int) -> UInt8 {
-        return UInt8(seconds / 10)
+        return UInt8(seconds / Device.durationSecondsSelectionSteps).bigEndian
     }
     
     static func runningStateFromData(_ data: UInt8) -> RunningState {

@@ -132,10 +132,8 @@ final class NotificationParser: Sendable {
             notification = DeviceStateNotification(
                 deviceId: command.deviceId,
                 clientSlot: clientSlot,
-                // payload[1] always 01 (not ALWAYS - sometime 00, sometimes 04)
-                targetTemperature: Converter.celciusFromData(payload[2]),
-                // payload[3] always 01 (sometimes 00 - maybe matching the controlsoperated values?)
-                actualTemperature: Converter.celciusFromData(payload[4]),
+                targetTemperature: Converter.celciusFromData(payload.subdata(in: 1..<3)),
+                actualTemperature: Converter.celciusFromData(payload.subdata(in: 3..<5)),
                 outletSlot0IsRunning: payload[5] == 0x64,
                 outletSlot1IsRunning: payload[6] == 0x64,
                 secondsRemaining: Converter.secondsFromData(payload.subdata(in: 7..<9)),
@@ -154,10 +152,8 @@ final class NotificationParser: Sendable {
                     deviceId: command.deviceId,
                     clientSlot: clientSlot,
                     selectedTemperature: (command as? OperateOutletControls)?.targetTemperature,
-                    // payload[2] always 01
-                    targetTemperature: Converter.celciusFromData(payload[3]),
-                    // payload[4] always 01  (sometime preset started=00, other 0x01 maybe reflecting what is sent in operate controls command)
-                    actualTemperature: Converter.celciusFromData(payload[5]),
+                    targetTemperature: Converter.celciusFromData(payload.subdata(in: 2..<4)),
+                    actualTemperature: Converter.celciusFromData(payload.subdata(in: 4..<6)),
                     outletSlot0IsRunning: payload[6] == 0x64,
                     outletSlot1IsRunning: payload[7] == 0x64,
                     secondsRemaining: Converter.secondsFromData(payload.subdata(in: 8..<10)),
@@ -176,8 +172,8 @@ final class NotificationParser: Sendable {
                         deviceId: command.deviceId,
                         clientSlot: clientSlot,
                         outletSlot: outletSettingsCommand.outletSlot,
-                        minimumTemperature: Converter.celciusFromData(payload[8]),
-                        maximumTemperature: Converter.celciusFromData(payload[6]),
+                        minimumTemperature: Converter.celciusFromData(payload.subdata(in: 7..<9)),
+                        maximumTemperature: Converter.celciusFromData(payload.subdata(in: 5..<7)),
                         maximumDurationSeconds: Converter.secondsFromData(payload[4])
                     )
                 } else {
@@ -254,13 +250,12 @@ final class NotificationParser: Sendable {
                 clientSlot: clientSlot,
                 presetSlot: payload[0],
                 // The bytes in this payload match the ones in the UpdatePresetDetails command
-                // payload[1] always 01
                 // payload[3] - seems to always be 0x64
                 // payload[6] - 00
                 // payload[7] - 00
                 name: String(data: payload.dropFirst(8).prefix(while: { $0 != 0x00 }), encoding: .utf8) ?? "",
                 outletSlot: (payload[5] & BitMasks.outlet0Enabled) == BitMasks.outlet0Enabled ? Outlet.outletSlot0 : Outlet.outletSlot1,
-                targetTemperature: Converter.celciusFromData(payload[2]),
+                targetTemperature: Converter.celciusFromData(payload.subdata(in: 1..<3)),
                 durationSeconds: Converter.secondsFromData(payload[4])
             )
 

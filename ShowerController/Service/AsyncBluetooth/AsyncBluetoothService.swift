@@ -12,6 +12,12 @@ import SwiftData
 import AsyncAlgorithms
 import AsyncBluetooth
 
+/*
+ TODO: Now that I have a better understanding of the interaction between commands and notifications
+ it might be better to refactor this somewhat so that notifications are returned following commands
+ and leaving the DeviceService to persist the changes to the Device.
+ It should give better separation of logic & bluetooth messaging
+*/
 // @ModelActor creates a single arg init, which prevents us passing the BluetoothService in
 actor AsyncBluetoothService: ModelActor, BluetoothService {
     private static let logger = LoggerFactory.logger(AsyncBluetoothService.self)
