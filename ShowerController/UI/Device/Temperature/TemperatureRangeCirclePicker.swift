@@ -17,11 +17,15 @@ struct TemperatureRangeCirclePicker: View {
 
     var permittedRange: ClosedRange<Double>
     
+    var lowerTemperatureSelectableRange: ClosedRange<Double> {
+        permittedRange.lowerBound...min(permittedRange.upperBound, upperTemperature)
+    }
+    var upperTemperatureSelectableRange: ClosedRange<Double> {
+        min(permittedRange.lowerBound, lowerTemperature)...permittedRange.upperBound
+    }
+
     var body: some View {
         GeometryReader { geometry in
-            let lowerTemperatureSelectableRange = permittedRange.lowerBound...upperTemperature
-            let upperTemperatureSelectableRange = lowerTemperature...permittedRange.upperBound
-
             @State var lowerTemperatureHandle = CirclePickerHandleConfig(
                 value: $lowerTemperature,
                 valueRange: permittedRange,
@@ -84,6 +88,6 @@ struct TemperatureRangeCirclePicker: View {
     TemperatureRangeCirclePicker(
         lowerTemperature: $lowerTemperature,
         upperTemperature: $upperTemperature,
-        permittedRange: 30...48
+        permittedRange: Outlet.permittedTemperatureRange
     )
 }

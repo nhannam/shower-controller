@@ -167,7 +167,14 @@ extension CommandDispatcher: DeviceCommandVisitor {
                 [outletFlag, outletFlag, 0x08, 0x64, Converter.secondsToData(command.maximumDurationSeconds)] +
                 Converter.celciusToData(command.maximumTemperature) +
                 Converter.celciusToData(command.minimumTemperature) +
-                [0x01, 0x7c]
+                /*
+                 Unclear what this value is intended to be - looks like another temperature.
+                 When min and max temps are both set to 30c, this is also set to 30c
+                 If you try to set outside the min/max range it appears to cause the command to be rejected
+                 Defaults to 0x7c, but is changed when that is outside permitted range
+                 - maybe it's an attempt to prevent accidental setting of a high minimum temperature?
+                 */
+                Converter.celciusToData(command.minimumTemperature)
             ),
             clientSecret: clientSecret
         )

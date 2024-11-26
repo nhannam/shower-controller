@@ -76,6 +76,17 @@ class Device {
             .first(where: { $0.presetSlot == defaultPresetSlot })
     }
 
+    var nextAvailablePresetSlot: UInt8? {
+        let occupiedSlots = presets.map(\.presetSlot)
+        return (UInt8(0)..<Device.numberOfPresetSlots)
+            .first(where: { !occupiedSlots.contains($0) })
+    }
+    
+    var activeOutlet: Outlet? {
+        return outlets.first(where: { $0.isRunning }) ?? getOutletBySlot(outletSlot: Outlet.outletSlot0)
+    }
+
+
     init(
         id: UUID,
         name: String,
@@ -134,12 +145,6 @@ class Device {
         return getOutletBySlot(outletSlot: outletSlot)?.isRunning ?? false
     }
 
-    func getNextAvailablePresetSlot() -> UInt8? {
-        let occupiedSlots = presets.map(\.presetSlot)
-        return (UInt8(0)..<Device.numberOfPresetSlots)
-            .first(where: { !occupiedSlots.contains($0) })
-    }
-    
     func getPresetBySlot(_ presetSlot: UInt8) -> Preset? {
         return presets.first(where: { $0.isSlot(presetSlot) })
     }
@@ -184,12 +189,20 @@ class Device {
         }
     }
     
-    func getRunningStateForTemperature(temperature: Double, outletSlot: Int) -> RunningState {
-        if let outlet = getOutletBySlot(outletSlot: outletSlot) {
+    func getRunningStateForTemperature(temperature: Double, outlet: Outlet?) -> RunningState {
+        if let outlet {
             outlet.isMinimumTemperature(temperature) ? .cold : .running
         } else {
             .running
         }
+    }
+
+    func getRunningStateForTemperature(temperature: Double) -> RunningState {
+        getRunningStateForTemperature(temperature: temperature, outlet: activeOutlet)
+    }
+
+    func getRunningStateForTemperature(temperature: Double, outletSlot: Int) -> RunningState {
+        getRunningStateForTemperature(temperature: temperature, outlet: getOutletBySlot(outletSlot: outletSlot))
     }
     
     fileprivate func updateRunningState(_ newRunningState: RunningState) {

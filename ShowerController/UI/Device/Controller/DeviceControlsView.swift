@@ -18,6 +18,7 @@ struct DeviceControlsView: View {
     @State private var deviceLockoutTracker = DeviceLockoutTracker()
     @State private var timer: Timer?
 
+    @State var isEditingTemperature = false
     @State var temperature: Double = 0
     
     var displayTemperature: Double {
@@ -61,12 +62,13 @@ struct DeviceControlsView: View {
                     }
                     .frame(width: 250, height: 250)
                     
-                    let activeOutlet = device.isOutletRunning(outletSlot: Outlet.outletSlot1) ? outlet1 : outlet0
+                    let activeOutlet = device.activeOutlet
                     if let activeOutlet {
                         TemperatureCirclePicker(
                             temperature: $temperature,
                             permittedRange: activeOutlet.temperatureRange ?? Outlet.permittedTemperatureRange,
                             onEditingChanged: { editing in
+                                isEditingTemperature = editing
                                 if (!editing) {
                                     temperatureSelected(temperature: temperature)
                                 }
@@ -74,7 +76,18 @@ struct DeviceControlsView: View {
                         )
                         
                         Group {
-                            if device.getRunningStateForTemperature(temperature: temperature, outletSlot: activeOutlet.outletSlot) == .cold {
+                            var isCold: Bool {
+                                if isEditingTemperature {
+                                    device.getRunningStateForTemperature(
+                                        temperature: temperature,
+                                        outlet: activeOutlet
+                                    ) == .cold
+                                } else {
+                                    device.runningState == .cold
+                                }
+                            }
+
+                            if isCold {
                                 Text("Cold")
                             } else {
                                 TemperatureText(temperature: temperature)

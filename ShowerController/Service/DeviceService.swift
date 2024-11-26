@@ -155,24 +155,13 @@ actor DeviceService: ModelActor {
         try await errorBoundary {
             let device = try getDeviceById(deviceId)
             
-            let outlet0Running = device.isOutletRunning(outletSlot: Outlet.outletSlot0)
-            let outlet1Running = device.isOutletRunning(outletSlot: Outlet.outletSlot1)
-
-            let newRunningState = if outlet0Running {
-                device.getRunningStateForTemperature(temperature: targetTemperature, outletSlot: Outlet.outletSlot0)
-            } else if outlet1Running {
-                device.getRunningStateForTemperature(temperature: targetTemperature, outletSlot: Outlet.outletSlot1)
-            } else {
-                device.runningState
-            }
-
             try await bluetoothService.dispatchCommand(
                 OperateOutletControls(
                     deviceId: device.id,
-                    outletSlot0Running: outlet0Running,
-                    outletSlot1Running: outlet1Running,
+                    outletSlot0Running: device.isOutletRunning(outletSlot: Outlet.outletSlot0),
+                    outletSlot1Running: device.isOutletRunning(outletSlot: Outlet.outletSlot1),
                     targetTemperature: targetTemperature,
-                    runningState: newRunningState
+                    runningState: device.getRunningStateForTemperature(temperature: targetTemperature)
                 )
             )
         }
@@ -302,7 +291,7 @@ actor DeviceService: ModelActor {
         try await errorBoundary {
             let device = try getDeviceById(deviceId)
             // choose a slot
-            if let availableSlot = device.getNextAvailablePresetSlot() {
+            if let availableSlot = device.nextAvailablePresetSlot {
                 try await doUpdatePreset(
                     device,
                     presetSlot: availableSlot,
