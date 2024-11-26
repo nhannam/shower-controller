@@ -79,7 +79,7 @@ struct SettingsView: View {
     }
     
     func triggerAction(_ action: @escaping () -> Void) {
-        if device.isTimerRunning {
+        if !device.isStopped {
             confirmationAction = action
             isShowingConfirmation = true
         } else {

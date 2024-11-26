@@ -47,7 +47,7 @@ struct EditWirelessRemoteButtonSettingsView: View {
                 }
                 ToolbarItem(placement: .confirmationAction) {
                     Button("Done") {
-                        if device.isTimerRunning {
+                        if !device.isStopped {
                             isShowingConfirmation = true
                         } else {
                             persist()

@@ -30,54 +30,65 @@ struct DeviceControlsView: View {
     }
 
     var body: some View {
-        Group {
+        HStack {
             let outlet0 = device.outlets.first(where: { $0.outletSlot == Outlet.outletSlot0 })
             let outlet1 = device.outlets.first(where: { $0.outletSlot == Outlet.outletSlot1 })
-            if let outlet0 {
-                HStack {
-                    Spacer()
-                    
-                    ZStack {
-                        Grid {
-                            DurationText(
-                                seconds: device.secondsRemaining
-                            )
-                            .foregroundStyle(device.runningState == .paused ? .gray : .black)
-                            .frame(alignment: .top)
-                            .font(.largeTitle)
-                            
-                            GridRow {
+            
+            Spacer()
+            
+            VStack {
+                ZStack {
+                    Grid {
+                        DurationText(
+                            seconds: device.secondsRemaining
+                        )
+                        .foregroundStyle(device.runningState == .paused ? .gray : .black)
+                        .frame(alignment: .top)
+                        .font(.largeTitle)
+                        
+                        GridRow {
+                            if let outlet0 {
                                 OutletButton(device: device, outlet: outlet0)
-
-                                if let outlet1 {
-                                    Spacer()
-                                    OutletButton(device: device, outlet: outlet1)
-                                }
                             }
 
-                            Spacer()
+                            if let outlet1 {
+                                Spacer()
+                                OutletButton(device: device, outlet: outlet1)
+                            }
                         }
-                        .frame(width: 250, height: 250)
-
-                        if let temperatureRange = outlet0.temperatureRange {
-                            TemperatureCirclePicker(
-                                temperature: $temperature,
-                                permittedRange: temperatureRange,
-                                labelPosition: .bottom,
-                                onEditingChanged: { editing in
-                                    if (!editing) {
-                                        temperatureSelected(temperature: temperature)
-                                    }
-                                }
-                            )
-                            .frame(width: 300, height: 300)
-                        }
+                        
+                        Spacer()
                     }
-                    .disabled(deviceLockoutTracker.lockedOut)
+                    .frame(width: 250, height: 250)
                     
-                    Spacer()
+                    let activeOutlet = device.isOutletRunning(outletSlot: Outlet.outletSlot1) ? outlet1 : outlet0
+                    if let activeOutlet {
+                        TemperatureCirclePicker(
+                            temperature: $temperature,
+                            permittedRange: activeOutlet.temperatureRange ?? Outlet.permittedTemperatureRange,
+                            onEditingChanged: { editing in
+                                if (!editing) {
+                                    temperatureSelected(temperature: temperature)
+                                }
+                            }
+                        )
+                        
+                        Group {
+                            if device.getRunningStateForTemperature(temperature: temperature, outletSlot: activeOutlet.outletSlot) == .cold {
+                                Text("Cold")
+                            } else {
+                                TemperatureText(temperature: temperature)
+                            }
+                        }
+                        .font(.largeTitle)
+                        .offset(y: 120)
+                    }
                 }
             }
+            .disabled(deviceLockoutTracker.lockedOut)
+            .frame(width: 300, height: 300)
+
+            Spacer()
         }
         .onChange(of: device.updatesLockedOutUntil, initial: true, lockoutTimeChanged)
         .onChange(of: displayTemperature, initial: true) { _, newValue in

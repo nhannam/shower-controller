@@ -55,11 +55,16 @@ struct EditPresetView: View {
                     if let temperatureRange = outlet.temperatureRange {
                         VStack {
                             Label("Temperature", systemImage: "thermometer")
-                            TemperatureCirclePicker(
-                                temperature: $targetTemperature,
-                                permittedRange: temperatureRange
-                            )
-                            .frame(width: 200, height: 200)
+                            ZStack {
+                                TemperatureCirclePicker(
+                                    temperature: $targetTemperature,
+                                    permittedRange: temperatureRange
+                                )
+                                .frame(width: 200, height: 200)
+
+                                TemperatureText(temperature: targetTemperature)
+                                    .font(.largeTitle)
+                            }
                         }
                         .frame(maxWidth: .infinity, alignment: .center)
                     }
@@ -120,7 +125,7 @@ struct EditPresetView: View {
     }
     
     func triggerAction(_ action: @escaping () -> Void) {
-        if device.isTimerRunning {
+        if !device.isStopped {
             confirmationAction = action
             isShowingConfirmation = true
         } else {

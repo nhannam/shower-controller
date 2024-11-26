@@ -45,7 +45,7 @@ struct EditPairedClientView: View {
     }
     
     func triggerUnpair() {
-        if device.isTimerRunning {
+        if !device.isStopped {
             isShowingConfirmation = true
         } else {
             unpair()

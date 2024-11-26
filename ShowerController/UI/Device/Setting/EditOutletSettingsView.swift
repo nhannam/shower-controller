@@ -17,8 +17,8 @@ struct EditOutletSettingsView: View {
 
     var outlet: Outlet
 
-    @State private var minimumTemperature: Double = Outlet.minimumPermittedTemperature
-    @State private var maximumTemperature: Double = Outlet.maximumPermittedTemperature
+    @State private var minimumTemperature: Double = Outlet.permittedTemperatureRange.lowerBound
+    @State private var maximumTemperature: Double = Outlet.permittedTemperatureRange.upperBound
     @State private var maximumDurationSeconds: Int = Outlet.maximumPermittedDurationSeconds
 
     @State private var isShowingConfirmation =  false
@@ -48,7 +48,7 @@ struct EditOutletSettingsView: View {
                                 TemperatureRangeCirclePicker(
                                     lowerTemperature: $minimumTemperature,
                                     upperTemperature: $maximumTemperature,
-                                    permittedRange: Outlet.minimumPermittedTemperature...Outlet.maximumPermittedTemperature
+                                    permittedRange: Outlet.permittedTemperatureRange
                                 )
                                 .frame(width: 200, height: 200)
                             }
@@ -80,7 +80,7 @@ struct EditOutletSettingsView: View {
                 }
                 ToolbarItem(placement: .confirmationAction) {
                     Button("Done") {
-                        if device.isTimerRunning {
+                        if !device.isStopped {
                             isShowingConfirmation = true
                         } else {
                             persist()

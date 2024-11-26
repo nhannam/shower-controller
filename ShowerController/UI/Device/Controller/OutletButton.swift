@@ -52,7 +52,7 @@ struct OutletButton: View {
         isSubmitted = true
         tools.submitJobWithErrorHandler {
             if outlet.isRunning {
-                try await tools.deviceService.stopOutlets(device.id)
+                try await tools.deviceService.pauseOutlets(device.id)
             } else {
                 let defaultPreset = device.defaultPreset
                 if (defaultPreset?.outlet.outletSlot == outlet.outletSlot) {

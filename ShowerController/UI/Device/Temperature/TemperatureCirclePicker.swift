@@ -8,47 +8,29 @@
 import SwiftUI
 
 struct TemperatureCirclePicker: View {
-    enum LabelPosition { case centre, bottom }
-    
     @Environment(\.isEnabled) private var isEnabled
     
     @Binding var temperature: Double
     
     var permittedRange: ClosedRange<Double>
     
-    var labelPosition: LabelPosition = .centre
-
     var onEditingChanged: (Bool) -> Void = { _ in }
 
     var body: some View {
-        GeometryReader { geometry in
-            let offsetY: Double = switch labelPosition {
-            case .centre:
-                0
-            case .bottom:
-                (geometry.size.width / 2) - 20.0
-            }
-            
-            @State var handle = CirclePickerHandleConfig(
-                value: $temperature,
-                valueRange: permittedRange,
-                step: TemperaturePickerCommon.temperatureSteps,
-                onEditingChanged: onEditingChanged
-            )
-            ZStack {
-                CirclePicker(
-                    track: TemperaturePickerCommon.trackConfig(
-                        isEnabled: isEnabled,
-                        padding: 15
-                    ),
-                    handles: [ handle ]
-                )
-                
-                TemperatureText(temperature: handle.value)
-                    .font(.largeTitle)
-                    .offset(y: offsetY)
-            }
-        }
+        @State var handle = CirclePickerHandleConfig(
+            value: $temperature,
+            valueRange: permittedRange,
+            step: TemperaturePickerCommon.temperatureSteps,
+            onEditingChanged: onEditingChanged
+        )
+
+        CirclePicker(
+            track: TemperaturePickerCommon.trackConfig(
+                isEnabled: isEnabled,
+                padding: 15
+            ),
+            handles: [ handle ]
+        )
     }
 }
 
@@ -59,7 +41,6 @@ struct TemperatureCirclePicker: View {
         TemperatureCirclePicker(
             temperature: $temperature,
             permittedRange: 30...48,
-            labelPosition: .bottom,
             onEditingChanged: { editing in if (!editing) { labelValue = temperature } }
         )
         Text(String(describing: labelValue))

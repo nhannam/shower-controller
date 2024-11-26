@@ -15,11 +15,11 @@ enum OutletType: Int, Codable, CaseIterable, Identifiable {
 
 @Model
 class Outlet {
+    static let permittedTemperatureRange: ClosedRange<Double> = 30.0...48.0
+    static let maximumPermittedDurationSeconds: Int = 30 * 60
     static let outletSlot0: Int = 0
     static let outletSlot1: Int = 1
-    static let minimumPermittedTemperature: Double = 30
-    static let maximumPermittedTemperature: Double = 48
-    static let maximumPermittedDurationSeconds: Int = 30 * 60
+
 
     #Unique<Outlet>([\.device, \.outletSlot])
     
@@ -55,6 +55,10 @@ class Outlet {
         self.minimumTemperature = minimumTemperature
         self.maximumTemperature = maximumTemperature
         self.maximumDurationSeconds = maximumDurationSeconds
+    }
+    
+    func isMinimumTemperature(_ value: Double) -> Bool {
+        minimumTemperature == value
     }
 }
 

@@ -61,8 +61,8 @@ class Device {
         nickname ?? name
     }
     
-    var isTimerRunning: Bool {
-        runningState != .off
+    var isStopped: Bool {
+        runningState == .off
     }
     
     var outletSlotsEnabledForWirelessRemoteButton: [Int] {
@@ -129,7 +129,11 @@ class Device {
     func getOutletBySlot(outletSlot: Int) -> Outlet? {
         return outlets.first(where: { $0.outletSlot == outletSlot })
     }
-    
+
+    func isOutletRunning(outletSlot: Int) -> Bool {
+        return getOutletBySlot(outletSlot: outletSlot)?.isRunning ?? false
+    }
+
     func getNextAvailablePresetSlot() -> UInt8? {
         let occupiedSlots = presets.map(\.presetSlot)
         return (UInt8(0)..<Device.numberOfPresetSlots)
@@ -177,6 +181,14 @@ class Device {
             return removed
         } else {
             return nil
+        }
+    }
+    
+    func getRunningStateForTemperature(temperature: Double, outletSlot: Int) -> RunningState {
+        if let outlet = getOutletBySlot(outletSlot: outletSlot) {
+            outlet.isMinimumTemperature(temperature) ? .cold : .running
+        } else {
+            .running
         }
     }
     

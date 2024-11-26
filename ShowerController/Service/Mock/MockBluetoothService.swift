@@ -41,8 +41,8 @@ actor MockBluetoothService: ModelActor, BluetoothService {
     func startScan() async throws {
         try await Task.sleep(for: .milliseconds(500))
         try self.modelContext.transaction {
-            let outlet0 = Outlet(outletSlot: Outlet.outletSlot0, type: .overhead, isRunning: false, minimumTemperature: Outlet.minimumPermittedTemperature, maximumTemperature: Outlet.maximumPermittedTemperature, maximumDurationSeconds: Outlet.maximumPermittedDurationSeconds)
-            let outlet1 = Outlet(outletSlot: Outlet.outletSlot1, type: .bath, isRunning: false, minimumTemperature: Outlet.minimumPermittedTemperature, maximumTemperature: Outlet.maximumPermittedTemperature, maximumDurationSeconds: Outlet.maximumPermittedDurationSeconds)
+            let outlet0 = Outlet(outletSlot: Outlet.outletSlot0, type: .overhead, isRunning: false, minimumTemperature: Outlet.permittedTemperatureRange.lowerBound, maximumTemperature: Outlet.permittedTemperatureRange.upperBound, maximumDurationSeconds: Outlet.maximumPermittedDurationSeconds)
+            let outlet1 = Outlet(outletSlot: Outlet.outletSlot1, type: .bath, isRunning: false, minimumTemperature: Outlet.permittedTemperatureRange.lowerBound, maximumTemperature: Outlet.permittedTemperatureRange.upperBound, maximumDurationSeconds: Outlet.maximumPermittedDurationSeconds)
             self.modelContext.insert(
                 Device(
                     id: Self.device1Id,
@@ -195,8 +195,8 @@ actor MockDeviceActor: SwiftData.ModelActor, DeviceCommandVisitor {
             clientSlot: clientSlot,
             targetTemperature: mockDevice.targetTemperature,
             actualTemperature: mockDevice.actualTemperature,
-            outletSlot0IsRunning: newRunningState == .running ? mockDevice.getOutletBySlot(outletSlot: Outlet.outletSlot0)?.isRunning ?? false : false,
-            outletSlot1IsRunning: newRunningState == .running ? mockDevice.getOutletBySlot(outletSlot: Outlet.outletSlot1)?.isRunning ?? false : false,
+            outletSlot0IsRunning: newRunningState == .running ? mockDevice.isOutletRunning(outletSlot: Outlet.outletSlot0) : false,
+            outletSlot1IsRunning: newRunningState == .running ? mockDevice.isOutletRunning(outletSlot: Outlet.outletSlot1) : false,
             secondsRemaining: newSecondsRemaining,
             runningState: newRunningState
         )

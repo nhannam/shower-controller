@@ -135,13 +135,17 @@ actor DeviceService: ModelActor {
     func startOutlet(_ deviceId: UUID, outletSlot: Int) async throws {
         try await errorBoundary {
             let device = try getDeviceById(deviceId)
+            
+            let temperature = device.selectedTemperature
+            let newRunningState = device.getRunningStateForTemperature(temperature: temperature, outletSlot: outletSlot)
+
             try await bluetoothService.dispatchCommand(
                 OperateOutletControls(
                     deviceId: device.id,
                     outletSlot0Running: outletSlot == Outlet.outletSlot0,
                     outletSlot1Running: outletSlot == Outlet.outletSlot1,
-                    targetTemperature: device.selectedTemperature,
-                    runningState: .running
+                    targetTemperature: temperature,
+                    runningState: newRunningState
                 )
             )
         }
@@ -150,13 +154,25 @@ actor DeviceService: ModelActor {
     func updateSelectedTemperature(_ deviceId: UUID, targetTemperature: Double) async throws {
         try await errorBoundary {
             let device = try getDeviceById(deviceId)
+            
+            let outlet0Running = device.isOutletRunning(outletSlot: Outlet.outletSlot0)
+            let outlet1Running = device.isOutletRunning(outletSlot: Outlet.outletSlot1)
+
+            let newRunningState = if outlet0Running {
+                device.getRunningStateForTemperature(temperature: targetTemperature, outletSlot: Outlet.outletSlot0)
+            } else if outlet1Running {
+                device.getRunningStateForTemperature(temperature: targetTemperature, outletSlot: Outlet.outletSlot1)
+            } else {
+                device.runningState
+            }
+
             try await bluetoothService.dispatchCommand(
                 OperateOutletControls(
                     deviceId: device.id,
-                    outletSlot0Running: device.getOutletBySlot(outletSlot: Outlet.outletSlot0)?.isRunning ?? false,
-                    outletSlot1Running: device.getOutletBySlot(outletSlot: Outlet.outletSlot1)?.isRunning ?? false,
+                    outletSlot0Running: outlet0Running,
+                    outletSlot1Running: outlet1Running,
                     targetTemperature: targetTemperature,
-                    runningState: device.runningState
+                    runningState: newRunningState
                 )
             )
         }
@@ -169,7 +185,7 @@ actor DeviceService: ModelActor {
         }
     }
     
-    func stopOutlets(_ deviceId: UUID) async throws {
+    func pauseOutlets(_ deviceId: UUID) async throws {
         try await errorBoundary {
             let device = try getDeviceById(deviceId)
             try await bluetoothService.dispatchCommand(
@@ -178,7 +194,6 @@ actor DeviceService: ModelActor {
                    outletSlot0Running: false,
                    outletSlot1Running: false,
                    targetTemperature: device.selectedTemperature,
-                   // Follow controller behaviour by settin to paused rather than stopped
                    runningState: .paused
                )
             )
@@ -224,7 +239,7 @@ actor DeviceService: ModelActor {
     
     private func stopOutletsAndWaitForLockoutToExipire(_ device: Device) async throws {
         // Most update operations require the device to be stopped before they're permitted.
-        if (device.isTimerRunning) {
+        if (!device.isStopped) {
             try await bluetoothService.dispatchCommand(
                 OperateOutletControls(
                    deviceId: device.id,
