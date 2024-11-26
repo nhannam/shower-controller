@@ -13,61 +13,64 @@ struct TemperatureRangeCirclePicker: View {
     @Environment(\.isEnabled) private var isEnabled
     
     @Binding var lowerTemperature: Double
-    @State private var lowerTemperaturePendingValue: Double?
-
     @Binding var upperTemperature: Double
-    @State private var upperTemperaturePendingValue: Double?
 
     var permittedRange: ClosedRange<Double>
     
     var body: some View {
         GeometryReader { geometry in
-            let trimCircle = twoPi * 0.12
-            let trackColours: [Color] = isEnabled ? [.blue, .red] : [ .secondary ]
-            let temperatureSteps = 1.0
             let lowerTemperatureSelectableRange = permittedRange.lowerBound...upperTemperature
             let upperTemperatureSelectableRange = lowerTemperature...permittedRange.upperBound
 
             @State var lowerTemperatureHandle = CirclePickerHandleConfig(
                 value: $lowerTemperature,
                 valueRange: permittedRange,
-                step: temperatureSteps,
+                step: TemperaturePickerCommon.temperatureSteps,
                 selectableRange: lowerTemperatureSelectableRange,
-                height: 30,
-                width: 30,
-                lineWidth: 2,
-                updateValueWhileDragging: false,
-                pendingValue: $lowerTemperaturePendingValue
+                view: {
+                    AnyView(
+                        Capsule()
+                            .stroke(.black, lineWidth: 2)
+                            .fill(.white)
+                            .frame(
+                                width: 40,
+                                height: 20
+                            )
+                            .offset(y: -10)
+                    )
+                }
             )
             @State var upperTemperatureHandle = CirclePickerHandleConfig(
                 value: $upperTemperature,
                 valueRange: permittedRange,
-                step: temperatureSteps,
+                step: TemperaturePickerCommon.temperatureSteps,
                 selectableRange: upperTemperatureSelectableRange,
-                height: 30,
-                width: 30,
-                lineWidth: 2,
-                updateValueWhileDragging: false,
-                pendingValue: $upperTemperaturePendingValue
+                view: {
+                    AnyView(
+                        Capsule()
+                            .stroke(.black, lineWidth: 2)
+                            .fill(.white)
+                            .frame(
+                                width: 40,
+                                height: 20
+                            )
+                            .offset(y: 10)
+                    )
+                }
             )
             ZStack {
                 CirclePicker(
-                    track: CirclePickerTrackConfig(
-                        radianRange: trimCircle...twoPi-trimCircle,
-                        lineWidth: 10,
-                        shapeStyle: LinearGradient(
-                            gradient: Gradient(colors: trackColours),
-                            startPoint: .leading,
-                            endPoint: .trailing
-                        )
+                    track: TemperaturePickerCommon.trackConfig(
+                        isEnabled: isEnabled,
+                        padding: 20
                     ),
                     handles: [ lowerTemperatureHandle, upperTemperatureHandle ]
                 )
                 
                 VStack {
-                    TemperatureText(temperature: lowerTemperatureHandle.handleValue)
+                    TemperatureText(temperature: lowerTemperatureHandle.value)
                         .font(.largeTitle)
-                    TemperatureText(temperature: upperTemperatureHandle.handleValue)
+                    TemperatureText(temperature: upperTemperatureHandle.value)
                         .font(.largeTitle)
                 }
             }

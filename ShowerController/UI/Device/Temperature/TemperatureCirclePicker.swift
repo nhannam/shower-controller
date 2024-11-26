@@ -13,13 +13,12 @@ struct TemperatureCirclePicker: View {
     @Environment(\.isEnabled) private var isEnabled
     
     @Binding var temperature: Double
-    @State private var temperaturePendingValue: Double?
-
-    var secondaryTemperature: Double? = nil
-
-    var temperatureRange: ClosedRange<Double>
+    
+    var permittedRange: ClosedRange<Double>
     
     var labelPosition: LabelPosition = .centre
+
+    var onEditingChanged: (Bool) -> Void = { _ in }
 
     var body: some View {
         GeometryReader { geometry in
@@ -29,35 +28,23 @@ struct TemperatureCirclePicker: View {
             case .bottom:
                 (geometry.size.width / 2) - 20.0
             }
-            let trimCircle = twoPi * 0.12
-            let trackColours: [Color] = isEnabled ? [.blue, .red] : [ .secondary ]
-            
             
             @State var handle = CirclePickerHandleConfig(
                 value: $temperature,
-                valueRange: temperatureRange,
-                step: 1,
-                height: 30,
-                width: 30,
-                lineWidth: 2,
-                updateValueWhileDragging: false,
-                pendingValue: $temperaturePendingValue
+                valueRange: permittedRange,
+                step: TemperaturePickerCommon.temperatureSteps,
+                onEditingChanged: onEditingChanged
             )
             ZStack {
                 CirclePicker(
-                    track: CirclePickerTrackConfig(
-                        radianRange: trimCircle...twoPi-trimCircle,
-                        lineWidth: 10,
-                        shapeStyle: LinearGradient(
-                            gradient: Gradient(colors: trackColours),
-                            startPoint: .leading,
-                            endPoint: .trailing
-                        )
+                    track: TemperaturePickerCommon.trackConfig(
+                        isEnabled: isEnabled,
+                        padding: 15
                     ),
                     handles: [ handle ]
                 )
                 
-                TemperatureText(temperature: handle.handleValue)
+                TemperatureText(temperature: handle.value)
                     .font(.largeTitle)
                     .offset(y: offsetY)
             }
@@ -67,9 +54,14 @@ struct TemperatureCirclePicker: View {
 
 #Preview {
     @Previewable @State var temperature = 32.0
-    TemperatureCirclePicker(
-        temperature: $temperature,
-        temperatureRange: 30...48,
-        labelPosition: .bottom
-    )
+    @Previewable @State var labelValue = 32.0
+    VStack {
+        TemperatureCirclePicker(
+            temperature: $temperature,
+            permittedRange: 30...48,
+            labelPosition: .bottom,
+            onEditingChanged: { editing in if (!editing) { labelValue = temperature } }
+        )
+        Text(String(describing: labelValue))
+    }
 }

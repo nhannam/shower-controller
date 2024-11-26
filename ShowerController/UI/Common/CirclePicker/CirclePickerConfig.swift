@@ -14,19 +14,23 @@ struct CirclePickerHandleConfig {
     var step: Double?
     
     var selectableRange: ClosedRange<Double>?
-
-    let height: Double
-    let width: Double
-    let lineWidth: Double
     
-    var updateValueWhileDragging = true
-    @Binding var pendingValue: Double?
+    @State var isEditing = false
+    var onEditingChanged: (Bool) -> Void = { _ in }
     
-    var handleValue: Double {
-        pendingValue ?? value
+    var view: () -> AnyView = {
+        AnyView(
+            Circle()
+                .stroke(.black, lineWidth: 2)
+                .fill(.white)
+                .frame(
+                    width: 30,
+                    height: 30
+                )
+        )
     }
     
-    func valueToFraction(_ value: Double) -> Double {
+    func valueToFraction() -> Double {
         return valueRange.valueToFraction(value)
     }
     
@@ -54,6 +58,7 @@ struct CirclePickerTrackConfig<TrackShape: ShapeStyle> {
     let radianOffset: Double = halfPi
     let lineWidth: Double
     let shapeStyle: TrackShape
+    var padding: Double = 15
 
     func fractionToRadians(_ fraction: Double) -> Double {
         let trackValue = radianRange.fractionToValue(fraction)
