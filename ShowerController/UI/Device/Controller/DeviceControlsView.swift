@@ -18,18 +18,17 @@ struct DeviceControlsView: View {
     @State private var deviceLockoutTracker = DeviceLockoutTracker()
     @State private var timer: Timer?
 
-    private var targetTemperature: Binding<Double> {
-        Binding {
-            return switch device.runningState {
-            case .running, .cold:
-                device.targetTemperature
-            case .paused, .off:
-                device.selectedTemperature
-            }
-        } set: { updatedTemperature in
-            temperatureSelected(temperature: updatedTemperature)
+    @State var temperature: Double = 0
+    
+    var displayTemperature: Double {
+        return switch device.runningState {
+        case .running, .cold:
+            device.targetTemperature
+        case .paused, .off:
+            device.selectedTemperature
         }
     }
+
     var body: some View {
         Group {
             let outlet0 = device.outlets.first(where: { $0.outletSlot == Outlet.outletSlot0 })
@@ -61,13 +60,16 @@ struct DeviceControlsView: View {
                         .frame(width: 250, height: 250)
 
                         if let temperatureRange = outlet0.temperatureRange {
-                            HStack {
-                                TemperatureCirclePicker(
-                                    temperature: targetTemperature,
-                                    temperatureRange: temperatureRange,
-                                    labelPosition: .bottom
-                                )
-                            }
+                            TemperatureCirclePicker(
+                                temperature: $temperature,
+                                permittedRange: temperatureRange,
+                                labelPosition: .bottom,
+                                onEditingChanged: { editing in
+                                    if (!editing) {
+                                        temperatureSelected(temperature: temperature)
+                                    }
+                                }
+                            )
                             .frame(width: 300, height: 300)
                         }
                     }
@@ -78,6 +80,9 @@ struct DeviceControlsView: View {
             }
         }
         .onChange(of: device.updatesLockedOutUntil, initial: true, lockoutTimeChanged)
+        .onChange(of: displayTemperature, initial: true) { _, newValue in
+            temperature = newValue
+        }
     }
     
     func temperatureSelected(temperature: Double) {
@@ -130,7 +135,7 @@ final class DeviceLockoutTracker {
 
 #Preview {
     Preview {
-        return DeviceControlsView(
+        DeviceControlsView(
             device: PreviewData.data.device
         )
     }

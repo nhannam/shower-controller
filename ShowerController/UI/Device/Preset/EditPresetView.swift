@@ -57,7 +57,7 @@ struct EditPresetView: View {
                             Label("Temperature", systemImage: "thermometer")
                             TemperatureCirclePicker(
                                 temperature: $targetTemperature,
-                                temperatureRange: temperatureRange
+                                permittedRange: temperatureRange
                             )
                             .frame(width: 200, height: 200)
                         }
