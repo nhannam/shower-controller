@@ -16,7 +16,7 @@ struct DurationPicker: View {
     var maximumSeconds: Int
     
     private let minutesGranularity: Int = 1
-    private let secondsGranularity: Int = 10
+    private let secondsGranularity: Int = Device.durationSecondsSelectionSteps
     
     @State private var selectedMinutes: Int = 0
     @State private var selectedSeconds: Int = 0

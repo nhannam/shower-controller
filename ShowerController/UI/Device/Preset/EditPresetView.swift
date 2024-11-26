@@ -59,7 +59,7 @@ struct EditPresetView: View {
                                 temperature: $targetTemperature,
                                 temperatureRange: temperatureRange
                             )
-                            .frame(width: 150, height: 150)
+                            .frame(width: 200, height: 200)
                         }
                         .frame(maxWidth: .infinity, alignment: .center)
                     }

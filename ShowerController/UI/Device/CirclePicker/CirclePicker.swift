@@ -7,105 +7,94 @@
 
 import SwiftUI
 
-struct CirclePicker<TrackShape: ShapeStyle, Label: View>: View {
-    @Binding var value: Double
-    var valueRange: ClosedRange<Double>
-    var step: Double?
-    var trackRadianRange: ClosedRange<Double>
-    var shapeStyle: TrackShape
-    var label: ((_ value: Double, _ pendingValue: Double?) -> Label)?
-    var updateValueWhileDragging = true
+struct CirclePicker<TrackShape: ShapeStyle>: View {
+    var track: CirclePickerTrackConfig<TrackShape>
+    var handles: [CirclePickerHandleConfig]
 
-    @State private var pendingValue: Double?
-    
-    func valueToPosition(_ value: Double, track: CirclePickerTrack<TrackShape>.Config) -> CGSize {
-        let valueFraction = valueRange.valueToFraction(value)
-        let trackValue = track.radianRange.fractionToValue(valueFraction)
-        let offSetTrackPosition = track.addOffset(trackValue)
-        return CGSize(
-            width: track.radius * cos(offSetTrackPosition),
-            height: track.radius * sin(offSetTrackPosition)
-        )
+    func valueToRadians(_ value: Double, handle: CirclePickerHandleConfig) -> Double {
+        let valueFraction = handle.valueToFraction(value)
+        return track.fractionToRadians(valueFraction)
     }
     
-    func positionToValue(_ position: CGPoint, track: CirclePickerTrack<TrackShape>.Config) -> Double {
-        let offSetTrackPosition = atan2(position.y, position.x)
-        let radians = track.removeOffset(offSetTrackPosition)
-        
-        let trackFraction = track.radianRange.valueToFraction(radians)
-        var value = valueRange.fractionToValue(trackFraction)
-        
-        if let step {
-            value = round(value / step) * step
-        }
-        
-        return value
+    func positionToValue(_ position: CGPoint, handle: CirclePickerHandleConfig) -> Double {
+        let fraction = track.positionToFraction(position)
+        return handle.fractionToValue(fraction)
     }
-    
-    func drag(track: CirclePickerTrack<TrackShape>.Config) -> some Gesture {
+
+    func drag(handle: CirclePickerHandleConfig) -> some Gesture {
         DragGesture()
-            .onChanged { value in
-                if (updateValueWhileDragging) {
-                    self.value = positionToValue(value.location, track: track)
+            .onChanged { dragValue in
+                let newValue = positionToValue(dragValue.location, handle: handle)
+                if (handle.updateValueWhileDragging) {
+                    handle.value = newValue
                 } else {
-                    self.pendingValue = positionToValue(value.location, track: track)
+                    handle.pendingValue = newValue
                 }
             }
-            .onEnded { value in
-                self.value = positionToValue(value.location, track: track)
+            .onEnded { dragValue in
+                handle.value = positionToValue(dragValue.location, handle: handle)
+                handle.pendingValue = nil
             }
     }
     
     var body: some View {
-        var handleValue: Double {
-            pendingValue ?? value
-        }
-
         GeometryReader { geometry in
             let size = min(
                 geometry.size.width,
                 geometry.size.height
             )
-            let handle = CirclePickerHandle.Config(
-                radius: 15,
-                lineWidth: 5
-            )
-            let track = CirclePickerTrack<TrackShape>.Config(
-                radius: (size - handle.diameter) / 2,
-                lineWidth: 10,
-                radianRange: trackRadianRange,
-                shapeStyle: shapeStyle
-            )
+            let trackDiameter = size - (handles.compactMap(\.width).max() ?? 0.0)
+            let trackRadius = trackDiameter / 2
             
             ZStack {
-                CirclePickerTrack(config: track)
-                CirclePickerHandle(
-                    config: handle,
-                    position: valueToPosition(handleValue, track: track)
-                )
-                .gesture(drag(track: track))
-                label?(value, pendingValue)
+                CirclePickerTrack(track: track)
+                    .frame(width: trackDiameter, height: trackDiameter)
+                
+                ForEach(Array(handles.enumerated()), id: \.offset) { offset, handle in
+                    CirclePickerHandleView(handle: handle)
+                        .offset(x: trackRadius)
+                        .rotationEffect(.radians(valueToRadians(handle.handleValue, handle: handle)))
+                        .gesture(drag(handle: handle))
+                }
             }
             .frame(
                 width: size,
                 height: size
             )
-            .onChange(of: value, initial: true) {
-                pendingValue = nil
-            }
-            .task {
-                value = value.clampToRange(range: valueRange)
-            }
         }
     }
 }
 
 #Preview {
     @Previewable @State var value = 32.0
-    CirclePicker<Color, Text>(
-        value: $value,
-        valueRange: 30...48,
-        trackRadianRange: .pi/4...((7 * .pi)/4),
-        shapeStyle: .orange
+    @Previewable @State var pendingValue: Double? = nil
+    @Previewable @State var secondValue = 35.0
+    @Previewable @State var pendingSecondValue: Double? = nil
+    CirclePicker(
+        track: CirclePickerTrackConfig(
+            radianRange: .pi/4...((7 * .pi)/4),
+            lineWidth: 10,
+            shapeStyle: .orange
+        ),
+        handles: [
+            CirclePickerHandleConfig(
+                value: $value,
+                valueRange: 30...48,
+                height: 10,
+                width: 40,
+                lineWidth: 2,
+                updateValueWhileDragging: false,
+                pendingValue: $pendingValue
+            ),
+            CirclePickerHandleConfig(
+                value: $secondValue,
+                valueRange: 30...48,
+                height: 30,
+                width: 30,
+                lineWidth: 2,
+                updateValueWhileDragging: true,
+                pendingValue: $pendingSecondValue
+            )
+        ]
     )
 }
