@@ -94,9 +94,10 @@ struct UpdateControllerSettings: PairedDeviceCommand {
 struct UpdateOutletSettings: PairedDeviceCommand {
     let deviceId: UUID
     let outletSlot: Int
-    let minimumTemperature: Double
-    let maximumTemperature: Double
     let maximumDurationSeconds: Int
+    let maximumTemperature: Double
+    let minimumTemperature: Double
+    let thresholdTemperature: Double
 
     func accept<V: DeviceCommandVisitor>(_ visitor: V) async throws -> V.Response {
         return try await visitor.visit(self)

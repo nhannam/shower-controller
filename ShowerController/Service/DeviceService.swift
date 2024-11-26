@@ -442,9 +442,10 @@ actor DeviceService: ModelActor {
                 UpdateOutletSettings(
                     deviceId: device.id,
                     outletSlot: outletSlot,
-                    minimumTemperature: temperatureRange.lowerBound,
+                    maximumDurationSeconds: maximumDurationSeconds,
                     maximumTemperature: temperatureRange.upperBound,
-                    maximumDurationSeconds: maximumDurationSeconds
+                    minimumTemperature: temperatureRange.lowerBound,
+                    thresholdTemperature: temperatureRange.lowerBound
                 ),
                 RequestOutletSettings(deviceId: device.id, outletSlot: outletSlot)
             ])

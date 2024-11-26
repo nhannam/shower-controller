@@ -64,7 +64,11 @@ class Device {
     var isStopped: Bool {
         runningState == .off
     }
-    
+
+    var isWaterFlowing: Bool {
+        runningState == .running || runningState == .cold
+    }
+
     var outletSlotsEnabledForWirelessRemoteButton: [Int] {
         return outlets
             .filter({ $0.isEnabledForWirelessRemoteButton })

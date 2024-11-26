@@ -18,14 +18,15 @@ struct DeviceControlsView: View {
     @State private var deviceLockoutTracker = DeviceLockoutTracker()
     @State private var timer: Timer?
 
-    @State var isEditingTemperature = false
-    @State var temperature: Double = 0
+    @State private var temperature: Double = 0
+
+    @State private var isEditingTemperature = false
+    @State private var isSubmitted = false
     
     var displayTemperature: Double {
-        return switch device.runningState {
-        case .running, .cold:
+        if device.isWaterFlowing {
             device.targetTemperature
-        case .paused, .off:
+        } else {
             device.selectedTemperature
         }
     }
@@ -68,16 +69,16 @@ struct DeviceControlsView: View {
                             temperature: $temperature,
                             permittedRange: activeOutlet.temperatureRange ?? Outlet.permittedTemperatureRange,
                             onEditingChanged: { editing in
-                                isEditingTemperature = editing
                                 if (!editing) {
                                     temperatureSelected(temperature: temperature)
                                 }
+                                isEditingTemperature = editing
                             }
                         )
                         
                         Group {
                             var isCold: Bool {
-                                if isEditingTemperature {
+                                if isEditingTemperature || isSubmitted || !device.isWaterFlowing {
                                     device.getRunningStateForTemperature(
                                         temperature: temperature,
                                         outlet: activeOutlet
@@ -110,11 +111,14 @@ struct DeviceControlsView: View {
     }
     
     func temperatureSelected(temperature: Double) {
+        isSubmitted = true
         tools.submitJobWithErrorHandler {
             try await tools.deviceService.updateSelectedTemperature(
                 device.id,
                 targetTemperature: temperature
             )
+        } finally: {
+            isSubmitted = false
         }
     }
     

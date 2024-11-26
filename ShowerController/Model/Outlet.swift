@@ -33,6 +33,7 @@ class Outlet {
     
     fileprivate(set) var minimumTemperature: Double
     fileprivate(set) var maximumTemperature: Double
+    fileprivate(set) var thresholdTemperature: Double
     fileprivate(set) var maximumDurationSeconds: Int
 
     var temperatureRange: ClosedRange<Double>? {
@@ -44,17 +45,19 @@ class Outlet {
         type: OutletType,
         isRunning: Bool = false,
         isEnabledForWirelessRemoteButton: Bool = false,
-        minimumTemperature: Double = 0,
+        maximumDurationSeconds: Int = 0,
         maximumTemperature: Double = 0,
-        maximumDurationSeconds: Int = 0
+        minimumTemperature: Double = 0,
+        thresholdTemperature: Double = 0
     ) {
         self.outletSlot = outletSlot
         self.type = type
         self.isRunning = isRunning
         self.isEnabledForWirelessRemoteButton = isEnabledForWirelessRemoteButton
-        self.minimumTemperature = minimumTemperature
-        self.maximumTemperature = maximumTemperature
         self.maximumDurationSeconds = maximumDurationSeconds
+        self.maximumTemperature = maximumTemperature
+        self.minimumTemperature = minimumTemperature
+        self.thresholdTemperature = thresholdTemperature
     }
     
     func isMinimumTemperature(_ value: Double) -> Bool {
@@ -70,9 +73,10 @@ class OutletNotificationApplier: OutletNotificationVisitor {
     }
     
     func visit(_ notification: OutletSettingsNotification) {
-        outlet.minimumTemperature = notification.minimumTemperature
-        outlet.maximumTemperature = notification.maximumTemperature
         outlet.maximumDurationSeconds = notification.maximumDurationSeconds
+        outlet.maximumTemperature = notification.maximumTemperature
+        outlet.minimumTemperature = notification.minimumTemperature
+        outlet.thresholdTemperature = notification.thresholdTemperature
     }
 }
 

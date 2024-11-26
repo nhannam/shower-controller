@@ -133,9 +133,10 @@ struct OutletSettingsNotification: DeviceNotification, OutletNotification {
     let deviceId: UUID
     let clientSlot: UInt8
     let outletSlot: Int
-    let minimumTemperature: Double
-    let maximumTemperature: Double
     let maximumDurationSeconds: Int
+    let maximumTemperature: Double
+    let minimumTemperature: Double
+    let thresholdTemperature: Double
 
     func accept(_ visitor: any DeviceNotificationVisitor) {
         visitor.visit(self)

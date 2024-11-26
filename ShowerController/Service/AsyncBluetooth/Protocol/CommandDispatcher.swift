@@ -174,7 +174,7 @@ extension CommandDispatcher: DeviceCommandVisitor {
                  Defaults to 0x7c, but is changed when that is outside permitted range
                  - maybe it's an attempt to prevent accidental setting of a high minimum temperature?
                  */
-                Converter.celciusToData(command.minimumTemperature)
+                Converter.celciusToData(command.thresholdTemperature)
             ),
             clientSecret: clientSecret
         )

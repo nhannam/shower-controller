@@ -172,9 +172,10 @@ final class NotificationParser: Sendable {
                         deviceId: command.deviceId,
                         clientSlot: clientSlot,
                         outletSlot: outletSettingsCommand.outletSlot,
-                        minimumTemperature: Converter.celciusFromData(payload.subdata(in: 7..<9)),
+                        maximumDurationSeconds: Converter.secondsFromData(payload[4]),
                         maximumTemperature: Converter.celciusFromData(payload.subdata(in: 5..<7)),
-                        maximumDurationSeconds: Converter.secondsFromData(payload[4])
+                        minimumTemperature: Converter.celciusFromData(payload.subdata(in: 7..<9)),
+                        thresholdTemperature: Converter.celciusFromData(payload.subdata(in: 9..<11))
                     )
                 } else {
                     notificationType = "Unknown11BytePayload"

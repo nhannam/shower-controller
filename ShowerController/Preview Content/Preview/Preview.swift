@@ -65,8 +65,22 @@ class PreviewData {
     
     let client = Client(clientId: UUID(), name: "Preview Client", secret: Data([0x00, 0x01, 0x02, 0x03]))
     
-    static let outlet0 = Outlet(outletSlot: Outlet.outletSlot0, type: .overhead, minimumTemperature: Outlet.permittedTemperatureRange.lowerBound, maximumTemperature: Outlet.permittedTemperatureRange.upperBound, maximumDurationSeconds: Outlet.maximumPermittedDurationSeconds)
-    static let outlet1 = Outlet(outletSlot: Outlet.outletSlot1, type: .bath, minimumTemperature: Outlet.permittedTemperatureRange.lowerBound, maximumTemperature: Outlet.permittedTemperatureRange.upperBound, maximumDurationSeconds: Outlet.maximumPermittedDurationSeconds)
+    static let outlet0 = Outlet(
+        outletSlot: Outlet.outletSlot0,
+        type: .overhead,
+        maximumDurationSeconds: Outlet.maximumPermittedDurationSeconds,
+        maximumTemperature: Outlet.permittedTemperatureRange.upperBound,
+        minimumTemperature: Outlet.permittedTemperatureRange.lowerBound,
+        thresholdTemperature: Outlet.permittedTemperatureRange.lowerBound
+    )
+    static let outlet1 = Outlet(
+        outletSlot: Outlet.outletSlot1,
+        type: .bath,
+        maximumDurationSeconds: Outlet.maximumPermittedDurationSeconds,
+        maximumTemperature: Outlet.permittedTemperatureRange.upperBound,
+        minimumTemperature: Outlet.permittedTemperatureRange.lowerBound,
+        thresholdTemperature: Outlet.permittedTemperatureRange.lowerBound
+    )
     let device = Device(
         id: UUID(),
         name: "Preview Device",

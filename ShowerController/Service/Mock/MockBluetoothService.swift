@@ -41,8 +41,24 @@ actor MockBluetoothService: ModelActor, BluetoothService {
     func startScan() async throws {
         try await Task.sleep(for: .milliseconds(500))
         try self.modelContext.transaction {
-            let outlet0 = Outlet(outletSlot: Outlet.outletSlot0, type: .overhead, isRunning: false, minimumTemperature: Outlet.permittedTemperatureRange.lowerBound, maximumTemperature: Outlet.permittedTemperatureRange.upperBound, maximumDurationSeconds: Outlet.maximumPermittedDurationSeconds)
-            let outlet1 = Outlet(outletSlot: Outlet.outletSlot1, type: .bath, isRunning: false, minimumTemperature: Outlet.permittedTemperatureRange.lowerBound, maximumTemperature: Outlet.permittedTemperatureRange.upperBound, maximumDurationSeconds: Outlet.maximumPermittedDurationSeconds)
+            let outlet0 = Outlet(
+                outletSlot: Outlet.outletSlot0,
+                type: .overhead,
+                isRunning: false,
+                maximumDurationSeconds: Outlet.maximumPermittedDurationSeconds,
+                maximumTemperature: Outlet.permittedTemperatureRange.upperBound,
+                minimumTemperature: Outlet.permittedTemperatureRange.lowerBound,
+                thresholdTemperature: Outlet.permittedTemperatureRange.lowerBound
+            )
+            let outlet1 = Outlet(
+                outletSlot: Outlet.outletSlot1,
+                type: .bath,
+                isRunning: false,
+                maximumDurationSeconds: Outlet.maximumPermittedDurationSeconds,
+                maximumTemperature: Outlet.permittedTemperatureRange.upperBound,
+                minimumTemperature: Outlet.permittedTemperatureRange.lowerBound,
+                thresholdTemperature: Outlet.permittedTemperatureRange.lowerBound
+            )
             self.modelContext.insert(
                 Device(
                     id: Self.device1Id,
@@ -302,9 +318,10 @@ actor MockDeviceActor: SwiftData.ModelActor, DeviceCommandVisitor {
             deviceId: command.deviceId,
             clientSlot: clientSlot,
             outletSlot: command.outletSlot,
-            minimumTemperature: command.minimumTemperature,
+            maximumDurationSeconds: command.maximumDurationSeconds,
             maximumTemperature: command.maximumTemperature,
-            maximumDurationSeconds: command.maximumDurationSeconds
+            minimumTemperature: command.minimumTemperature,
+            thresholdTemperature: command.thresholdTemperature
         )
     }
     
