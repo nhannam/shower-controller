@@ -51,7 +51,7 @@ struct DeviceStatePollingModifier: ViewModifier {
             }
             .onReceive(timer) { time in
                 Self.logger.debug("timer \(time)")
-                if (pollingState == .start || pollingState == .ok) {
+                if (pollingState == .start || pollingState == .ok || pollingState == .failed) {
                     Self.logger.debug("Requesting device state")
                     pollingState = .awaitResponse
                     requestState()
@@ -91,14 +91,13 @@ struct DeviceStatePollingModifier: ViewModifier {
     
     
     func requestState() {
-        tools.submitJobWithErrorHandler {
+        tools.submitJob {
             do {
                 try await tools.deviceService.requestState(deviceId)
                 pollingState = .ok
             } catch {
                 if (pollingState != .stop) {
                     pollingState = .failed
-                    throw error
                 }
             }
         }

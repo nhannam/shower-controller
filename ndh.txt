@@ -1,0 +1,36 @@
+Factory reset, no changes to max/min
+
+Response -- Type: OutletSettings, Payload: 04 01 08 08 b4 01 c2 01 2c 01 7c
+Response -- Type: OutletSettings, Payload: 08 01 08 08 b4 01 c2 01 2c 01 7c
+
+NOTE: 0x08, 0x08 minTemp=30, maxTemp=30, thresholdTemp=38
+But app displays min/,max as 30, 45
+
+
+After updating shower max via mira app
+Response -- Type: OutletSettings, Payload: 00 04 08 08 b4 01 e0 01 2c 01 7c
+Response -- Type: OutletSettings, Payload: 04 08 08 08 b4 01 c2 01 2c 01 7c
+
+
+After updating max duration (applied to both)
+Response -- Type: OutletSettings, Payload: 00 00 08 08 ae 01 e0 01 2c 01 7c
+Response -- Type: OutletSettings, Payload: 04 04 08 08 ae 01 c2 01 2c 01 7c
+
+
+
+Factory reset
+Response -- Type: OutletSettings, Payload: 04 01 08 08 b4 01 c2 01 2c 01 7c
+Response -- Type: OutletSettings, Payload: 08 01 08 08 b4 01 c2 01 2c 01 7c
+
+Duration change
+Response -- Type: OutletSettings, Payload: 00 04 08 08 ae 01 c2 01 2c 01 7c
+Response -- Type: OutletSettings, Payload: 04 08 08 08 ae 01 c2 01 2c 01 7c
+
+shower max temp
+Response -- Type: OutletSettings, Payload: 00 00 08 08 ae 01 e0 01 2c 01 7c
+Response -- Type: OutletSettings, Payload: 04 04 08 08 ae 01 c2 01 2c 01 7c
+
+bath max temp
+Response -- Type: OutletSettings, Payload: 00 00 08 08 ae 01 e0 01 2c 01 7c
+Response -- Type: OutletSettings, Payload: 04 04 08 08 ae 01 e0 01 2c 01 7c
+

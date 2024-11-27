@@ -20,4 +20,6 @@ struct BitMasks {
     
     static let outlet0Enabled: UInt8 = 0x01
     static let outlet1Enabled: UInt8 = 0x02
+    
+    static let maximumFlowRate: UInt8 = 0x64
 }

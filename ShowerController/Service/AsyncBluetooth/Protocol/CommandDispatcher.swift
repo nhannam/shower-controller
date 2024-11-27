@@ -119,7 +119,7 @@ extension CommandDispatcher: DeviceCommandVisitor {
         let payload = Data(
             [clientSlot, 0xb0, 0x18, command.presetSlot] +
             Converter.celciusToData(command.targetTemperature) +
-            [0x64, Converter.secondsToData(command.durationSeconds), outletByte, 0x00, 0x00]
+            [BitMasks.maximumFlowRate, Converter.secondsToData(command.durationSeconds), outletByte, 0x00, 0x00]
         ) + command.name.data(using: .utf8)!.withPaddingTo(length: 16)
         
         try await writeData(payload, clientSecret: clientSecret)
@@ -143,8 +143,8 @@ extension CommandDispatcher: DeviceCommandVisitor {
                 [clientSlot, 0x87, 0x05, Converter.runningStateToData(command.runningState)] +
                 Converter.celciusToData(command.targetTemperature) +
                 [
-                    command.outletSlot0Running ? 0x64 : 0x00,
-                    command.outletSlot1Running ? 0x64 : 0x00
+                    command.outletSlot0Running ? BitMasks.maximumFlowRate : 0x00,
+                    command.outletSlot1Running ? BitMasks.maximumFlowRate : 0x00
                 ]
             ),
             clientSecret: clientSecret
@@ -164,14 +164,14 @@ extension CommandDispatcher: DeviceCommandVisitor {
         try await writeData(
             Data(
                 [clientSlot, commandType, 0x0b] +
-                [outletFlag, outletFlag, 0x08, 0x64, Converter.secondsToData(command.maximumDurationSeconds)] +
+                [outletFlag, outletFlag, 0x08, BitMasks.maximumFlowRate, Converter.secondsToData(command.maximumDurationSeconds)] +
                 Converter.celciusToData(command.maximumTemperature) +
                 Converter.celciusToData(command.minimumTemperature) +
                 /*
                  Unclear what this value is intended to be - looks like another temperature.
                  When min and max temps are both set to 30c, this is also set to 30c
                  If you try to set outside the min/max range it appears to cause the command to be rejected
-                 Defaults to 0x7c, but is changed when that is outside permitted range
+                 Defaults to 0x7c (38c), but is changed when that is outside permitted range
                  - maybe it's an attempt to prevent accidental setting of a high minimum temperature?
                  */
                 Converter.celciusToData(command.thresholdTemperature)

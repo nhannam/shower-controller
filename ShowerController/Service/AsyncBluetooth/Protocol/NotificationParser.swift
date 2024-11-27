@@ -134,8 +134,8 @@ final class NotificationParser: Sendable {
                 clientSlot: clientSlot,
                 targetTemperature: Converter.celciusFromData(payload.subdata(in: 1..<3)),
                 actualTemperature: Converter.celciusFromData(payload.subdata(in: 3..<5)),
-                outletSlot0IsRunning: payload[5] == 0x64,
-                outletSlot1IsRunning: payload[6] == 0x64,
+                outletSlot0IsRunning: payload[5] == BitMasks.maximumFlowRate,
+                outletSlot1IsRunning: payload[6] == BitMasks.maximumFlowRate,
                 secondsRemaining: Converter.secondsFromData(payload.subdata(in: 7..<9)),
                 runningState: Converter.runningStateFromData(payload[0])
                 // payload[9] this seems to be a counter of sucessfull operations that loops from 0x09 through 0x0f
@@ -154,8 +154,8 @@ final class NotificationParser: Sendable {
                     selectedTemperature: (command as? OperateOutletControls)?.targetTemperature,
                     targetTemperature: Converter.celciusFromData(payload.subdata(in: 2..<4)),
                     actualTemperature: Converter.celciusFromData(payload.subdata(in: 4..<6)),
-                    outletSlot0IsRunning: payload[6] == 0x64,
-                    outletSlot1IsRunning: payload[7] == 0x64,
+                    outletSlot0IsRunning: payload[6] != 0x00,
+                    outletSlot1IsRunning: payload[7] != 0x00,
                     secondsRemaining: Converter.secondsFromData(payload.subdata(in: 8..<10)),
                     runningState: Converter.runningStateFromData(payload[1])
                     // payload[10] this seems to be a counter of sucessfull operations that loops from 0x09 through 0x0f
@@ -251,7 +251,7 @@ final class NotificationParser: Sendable {
                 clientSlot: clientSlot,
                 presetSlot: payload[0],
                 // The bytes in this payload match the ones in the UpdatePresetDetails command
-                // payload[3] - seems to always be 0x64
+                // payload[3] - seems to always be 0x64.  suspect it's flow rate
                 // payload[6] - 00
                 // payload[7] - 00
                 name: String(data: payload.dropFirst(8).prefix(while: { $0 != 0x00 }), encoding: .utf8) ?? "",
