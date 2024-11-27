@@ -45,10 +45,10 @@ class Outlet {
         type: OutletType,
         isRunning: Bool = false,
         isEnabledForWirelessRemoteButton: Bool = false,
-        maximumDurationSeconds: Int = 0,
-        maximumTemperature: Double = 0,
-        minimumTemperature: Double = 0,
-        thresholdTemperature: Double = 0
+        maximumDurationSeconds: Int = Outlet.maximumPermittedDurationSeconds,
+        maximumTemperature: Double = Outlet.permittedTemperatureRange.upperBound,
+        minimumTemperature: Double = Outlet.permittedTemperatureRange.lowerBound,
+        thresholdTemperature: Double = Outlet.permittedTemperatureRange.lowerBound
     ) {
         self.outletSlot = outletSlot
         self.type = type

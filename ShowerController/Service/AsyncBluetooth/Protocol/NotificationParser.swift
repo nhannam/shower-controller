@@ -6,9 +6,18 @@
 //
 
 import Foundation
+import AsyncBluetooth
 
 final class NotificationParser: Sendable {
     private static let logger = LoggerFactory.logger(NotificationParser.self)
+    
+    private let peripheral: Peripheral
+    private let command: DeviceCommand
+    
+    init(peripheral: Peripheral, command: DeviceCommand) {
+        self.peripheral = peripheral
+        self.command = command
+    }
     
     private func bitsSet(data: Data) -> [UInt8] {
         var bitsSet: [UInt8] = []
@@ -26,7 +35,7 @@ final class NotificationParser: Sendable {
         return bitsSet
     }
     
-    func parseNotification(_ data: Data, command: DeviceCommand) -> DeviceNotification? {
+    func parseNotification(_ data: Data) -> DeviceNotification? {
         // [ 40+deviceSlot, notificationType, dataLength, ...data ]
         // data can continue in subsequent notifications - use length to determine end
         let clientSlot = data[0] - 0x40
@@ -46,7 +55,11 @@ final class NotificationParser: Sendable {
                     // On pairing response, successId contains new client slot
                     // success: 40 01 01 [00] - data[3] = paired client slot/index
                     notificationType = "PairSuceeded"
-                    notification = PairSuccessNotification(deviceId: command.deviceId, clientSlot: successId)
+                    notification = PairSuccessNotification(
+                        deviceId: command.deviceId,
+                        clientSlot: successId,
+                        name: peripheral.name ?? "Unnamed Device"
+                    )
                 case let unpairCommand as UnpairDevice:
                     // On pairing response, successId contains new client slot
                     // success: 40 01 01 [00] - data[3] = paired client slot/index
@@ -87,7 +100,7 @@ final class NotificationParser: Sendable {
                     pairedClientSlots: bitsSet(data: payload)
                 )
             default:
-                notificationType = "UnknownSlotsOperation"
+                notificationType = "UnexpectedSlotsOperation"
                 notification = nil
             }
 
@@ -122,30 +135,35 @@ final class NotificationParser: Sendable {
                 notification = UnknownNotification(deviceId: command.deviceId)
 
             default:
-                notificationType = "Unknown4ByteNotification"
+                notificationType = "Unexpected4ByteNotification"
                 notification = nil
             }
             
         case 10:
-            // payload example [00 01 e0 00 c0 00 00 07 08 09]
-            notificationType = "DeviceState"
-            notification = DeviceStateNotification(
-                deviceId: command.deviceId,
-                clientSlot: clientSlot,
-                targetTemperature: Converter.celciusFromData(payload.subdata(in: 1..<3)),
-                actualTemperature: Converter.celciusFromData(payload.subdata(in: 3..<5)),
-                outletSlot0IsRunning: payload[5] == BitMasks.maximumFlowRate,
-                outletSlot1IsRunning: payload[6] == BitMasks.maximumFlowRate,
-                secondsRemaining: Converter.secondsFromData(payload.subdata(in: 7..<9)),
-                runningState: Converter.runningStateFromData(payload[0])
-                // payload[9] this seems to be a counter of sucessfull operations that loops from 0x09 through 0x0f
-            )
+            switch command {
+            case is RequestState:
+                // payload example [00 01 e0 00 c0 00 00 07 08 09]
+                notificationType = "DeviceState"
+                notification = DeviceStateNotification(
+                    deviceId: command.deviceId,
+                    clientSlot: clientSlot,
+                    targetTemperature: Converter.celciusFromData(payload.subdata(in: 1..<3)),
+                    actualTemperature: Converter.celciusFromData(payload.subdata(in: 3..<5)),
+                    outletSlot0IsRunning: payload[5] == BitMasks.maximumFlowRate,
+                    outletSlot1IsRunning: payload[6] == BitMasks.maximumFlowRate,
+                    secondsRemaining: Converter.secondsFromData(payload.subdata(in: 7..<9)),
+                    runningState: Converter.runningStateFromData(payload[0])
+                    // payload[9] this seems to be a counter of sucessfull operations that loops from 0x09 through 0x0f
+                )
+            default:
+                notificationType = "Unexpected10ByteNotification"
+                notification = nil
+            }
 
         case 11:
-            // controls operated response
-            let changeType = payload[0] // indicates type of controls
-            switch changeType {
-            case 0x01, 0x80:
+            // let changeType = payload[0]
+            switch command {
+            case is OperateOutletControls, is StartPreset:
                 // looks like 0x01 indicates a sucessfull change, 0x80 indicates no resulting change
                 notificationType = "ControlsOperated"
                 notification = ControlsOperatedNotification(
@@ -160,30 +178,27 @@ final class NotificationParser: Sendable {
                     runningState: Converter.runningStateFromData(payload[1])
                     // payload[10] this seems to be a counter of sucessfull operations that loops from 0x09 through 0x0f
                 )
-            case 0x00, 0x04, 0x08:
-                if let outletSettingsCommand = command as? RequestOutletSettings {
-                    // outlet1 settinga
-                    // Value: 42010b00000864b401e0012c017c (outlet0)
-                    // Value: 42010b04040864b401e0012c017c (outlet1)
-                    // Value  42010b04010808b401c2012c017c (outlet0 after factory reset, before any settings changes)
-                    // Value: 42010b08010808b401c2012c017c (outlet1 after factory reset, before any settings changes)
-                    notificationType = "OutletSettings"
-                    notification = OutletSettingsNotification(
-                        deviceId: command.deviceId,
-                        clientSlot: clientSlot,
-                        outletSlot: outletSettingsCommand.outletSlot,
-                        maximumDurationSeconds: Converter.secondsFromData(payload[4]),
-                        maximumTemperature: Converter.celciusFromData(payload.subdata(in: 5..<7)),
-                        minimumTemperature: Converter.celciusFromData(payload.subdata(in: 7..<9)),
-                        thresholdTemperature: Converter.celciusFromData(payload.subdata(in: 9..<11))
-                    )
-                } else {
-                    notificationType = "Unknown11BytePayload"
-                    notification = nil
-                }
+                
+            case let outletSettingsCommand as RequestOutletSettings:
+                // changeType 0x00, 0x04, 0x08:
+                // outlet1 settinga
+                // Value: 42010b00000864b401e0012c017c (outlet0)
+                // Value: 42010b04040864b401e0012c017c (outlet1)
+                // Value  42010b04010808b401c2012c017c (outlet0 after factory reset, before any settings changes)
+                // Value: 42010b08010808b401c2012c017c (outlet1 after factory reset, before any settings changes)
+                notificationType = "OutletSettings"
+                notification = OutletSettingsNotification(
+                    deviceId: command.deviceId,
+                    clientSlot: clientSlot,
+                    outletSlot: outletSettingsCommand.outletSlot,
+                    maximumDurationSeconds: Converter.secondsFromData(payload[4]),
+                    maximumTemperature: Converter.celciusFromData(payload.subdata(in: 5..<7)),
+                    minimumTemperature: Converter.celciusFromData(payload.subdata(in: 7..<9)),
+                    thresholdTemperature: Converter.celciusFromData(payload.subdata(in: 9..<11))
+                )
+                
             default:
-                Self.logger.warning("Unexpected changeType received in message")
-                notificationType = "UnknownControlsOperation"
+                notificationType = "Unexpected11BytePayload"
                 notification = nil
             }
                         
@@ -192,10 +207,11 @@ final class NotificationParser: Sendable {
             switch command {
             case is RequestNickname:
                 notificationType = "Nickname"
+                let nickname = String(data: payload.prefix(while: { $0 != 0x00 }), encoding: .utf8)
                 notification = DeviceNicknameNotification(
                     deviceId: command.deviceId,
                     clientSlot: clientSlot,
-                    nickname: String(data: payload.prefix(while: { $0 != 0x00 }), encoding: .utf8) ?? ""
+                    nickname: nickname?.isEmpty ?? true ? nil : nickname
                 )
             case is RequestTechnicalInformation:
                 notificationType = "TechnicalInformation"
@@ -216,51 +232,57 @@ final class NotificationParser: Sendable {
                     bluetoothSoftwareVersion: payload[15]
                 )
             default:
-                notificationType = "Unknown16BytePayload"
+                notificationType = "Unexpected16BytePayload"
                 notification = nil
             }
             
         case 18:
             // Written: 02 40 01 01 a4 dd
             // Notification data received: 42 01 12 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
-            notificationType = "Unknown18BytePayload"
+            notificationType = "Unexpected18BytePayload"
             notification = UnknownNotification(deviceId: command.deviceId)
 
         case 20:
-            // Value: 40 01 14 69 50 68 6f 6e 65 00 00 00 00 00 00 00 00 00 00 00 00 00 00
-            notificationType = "ClientDetails"
-            if let requestClientCommand = command as? RequestPairedClientDetails {
+            switch command {
+            case let requestPairedClientCommand as RequestPairedClientDetails:
+                // Value: 40 01 14 69 50 68 6f 6e 65 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+                notificationType = "ClientDetails"
                 let nameReceived = String(data: payload.prefix(while: { $0 != 0x00 }), encoding: .utf8) ?? ""
                 // Sometimes, a lack of client is indicated by all 0x00 name
                 notification = PairedClientDetailsNotification(
                     deviceId: command.deviceId,
                     clientSlot: clientSlot,
-                    pairedClientSlot: requestClientCommand.clientSlot,
+                    pairedClientSlot: requestPairedClientCommand.clientSlot,
                     name: nameReceived.isEmpty ? nil : nameReceived
                 )
-            }else {
+            default:
+                notificationType = "Unexpected20BytePayload"
                 notification = nil
             }
             
         case 24:
-            // preset details response
-            // Value: 40018a0001a900e5000007080a
-            notificationType = "PresetDetails"
-            notification = PresetDetailsNotification(
-                deviceId: command.deviceId,
-                clientSlot: clientSlot,
-                presetSlot: payload[0],
-                // The bytes in this payload match the ones in the UpdatePresetDetails command
-                // payload[3] - seems to always be 0x64.  suspect it's flow rate
-                // payload[6] - 00
-                // payload[7] - 00
-                name: String(data: payload.dropFirst(8).prefix(while: { $0 != 0x00 }), encoding: .utf8) ?? "",
-                outletSlot: (payload[5] & BitMasks.outlet0Enabled) == BitMasks.outlet0Enabled ? Outlet.outletSlot0 : Outlet.outletSlot1,
-                targetTemperature: Converter.celciusFromData(payload.subdata(in: 1..<3)),
-                durationSeconds: Converter.secondsFromData(payload[4])
-            )
-
-
+            switch command {
+            case is RequestPresetDetails:
+                // preset details response
+                // Value: 40018a0001a900e5000007080a
+                notificationType = "PresetDetails"
+                notification = PresetDetailsNotification(
+                    deviceId: command.deviceId,
+                    clientSlot: clientSlot,
+                    presetSlot: payload[0],
+                    // The bytes in this payload match the ones in the UpdatePresetDetails command
+                    // payload[3] - seems to always be 0x64.  suspect it's flow rate
+                    // payload[6] - 00
+                    // payload[7] - 00
+                    name: String(data: payload.dropFirst(8).prefix(while: { $0 != 0x00 }), encoding: .utf8) ?? "",
+                    outletSlot: (payload[5] & BitMasks.outlet0Enabled) == BitMasks.outlet0Enabled ? Outlet.outletSlot0 : Outlet.outletSlot1,
+                    targetTemperature: Converter.celciusFromData(payload.subdata(in: 1..<3)),
+                    durationSeconds: Converter.secondsFromData(payload[4])
+                )
+            default:
+                notificationType = "Unexpected24BytePayload"
+                notification = nil
+            }
 
         default:
             notificationType = "UNKNOWN"

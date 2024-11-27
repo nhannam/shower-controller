@@ -46,7 +46,7 @@ struct HomeView: View {
     
     func suspendProcessing() {
         tools.submitJobWithErrorHandler {
-            try await tools.deviceService.suspendProcessing()
+            try await tools.bluetoothService.disconnectAll()
         }
     }
 }

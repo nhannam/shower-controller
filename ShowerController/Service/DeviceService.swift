@@ -13,6 +13,8 @@ import AsyncBluetooth
 enum DeviceServiceError: Error {
     case deviceNotFound
     case clientNotFound
+    case deviceNotPaired
+    case commandFailed
     case internalError
 }
 
@@ -21,9 +23,6 @@ actor DeviceService: ModelActor {
     private static let logger = LoggerFactory.logger(DeviceService.self)
     private static let author = "DeviceService"
     
-    static let UNPAIRED_PREDICATE = #Predicate<Device> { $0.clientSlot == nil }
-    static let PAIRED_PREDICATE = #Predicate<Device> { $0.clientSlot != nil }
-
     private let bluetoothService: BluetoothService
     nonisolated let modelExecutor: any ModelExecutor
     nonisolated let modelContainer: ModelContainer
@@ -42,6 +41,8 @@ actor DeviceService: ModelActor {
             try await block()
         } catch let error as DeviceServiceError {
             throw error
+        } catch BluetoothServiceError.cancelled {
+            Self.logger.info("Bluetooth Operation was cancelled")
         } catch let error as BluetoothServiceError {
             throw error
         } catch {
@@ -77,71 +78,117 @@ actor DeviceService: ModelActor {
             }
         }
     }
-
-    func suspendProcessing() async throws {
-        try await errorBoundary {
-            try await bluetoothService.stopScan()
-            try await bluetoothService.disconnectAll()
-        }
+    
+    private func getPairedDevice(_ id: UUID) async throws -> (Device, Client) {
+        let device = try getDeviceById(id)
+        let client = try getClient()
+        
+        return (device, client)
     }
+    
+    private func executeCommand(_ command: DeviceCommand) async throws {
+        let notification = try await bluetoothService.dispatchCommand(command)
 
-    func startScan() async throws {
-        try await errorBoundary {
+        switch notification {
+        case is FailedNotification:
+            throw DeviceServiceError.commandFailed
+            
+        case let pairSuccess as PairSuccessNotification:
             try modelContext.transaction {
-                try modelContext.delete(
-                    model: Device.self,
-                    where: Self.UNPAIRED_PREDICATE
+                modelContext.insert(
+                    Device(
+                        id: pairSuccess.deviceId,
+                        name: pairSuccess.name,
+                        clientSlot: pairSuccess.clientSlot,
+                        outlets: [
+                            Outlet(outletSlot: Outlet.outletSlot0, type: .overhead),
+                            Outlet(outletSlot: Outlet.outletSlot1, type: .bath)
+                        ]
+                    )
                 )
             }
-            try await bluetoothService.startScan()
+            
+        default:
+            try modelContext.transaction {
+                let device = try getDeviceById(notification.deviceId)
+                notification.accept(DeviceNotificatonApplier(device: device, modelContext: modelContext))
+            }
         }
     }
-    
-    func stopScan() async throws {
-        try await bluetoothService.stopScan()
+
+    private func executeCommands(_ commands: [DeviceCommand]) async throws {
+        for command in commands {
+            try await executeCommand(command)
+        }
     }
-    
+
     func requestDeviceDetails(_ deviceId: UUID) async throws {
         try await errorBoundary {
-            let device = try getDeviceById(deviceId)
+            let (device, client) = try await getPairedDevice(deviceId)
             
-            try await bluetoothService.dispatchCommands([
-                RequestState(deviceId: device.id),
-                RequestNickname(deviceId: device.id),
+            try await executeCommands([
+                RequestState(
+                    deviceId: device.id,
+                    clientSlot: device.clientSlot,
+                    clientSecret: client.secret
+                ),
+                RequestNickname(
+                    deviceId: device.id,
+                    clientSlot: device.clientSlot,
+                    clientSecret: client.secret
+                ),
             ])
         }
     }
     
     func updateNickname(_ deviceId: UUID, nickname: String) async throws {
         try await errorBoundary {
-            let device = try getDeviceById(deviceId)
+            let (device, client) = try await getPairedDevice(deviceId)
+
+            try await stopOutletsAndWaitForLockoutToExipire(device: device, client: client)
             
-            try await stopOutletsAndWaitForLockoutToExipire(device)
-            
-            try await bluetoothService.dispatchCommands([
-                UpdateNickname(deviceId: device.id, nickname: nickname),
-                RequestNickname(deviceId: device.id)
+            try await executeCommands([
+                UpdateNickname(
+                    deviceId: device.id,
+                    clientSlot: device.clientSlot,
+                    clientSecret: client.secret,
+                    nickname: nickname
+                ),
+                RequestNickname(
+                    deviceId: device.id,
+                    clientSlot: device.clientSlot,
+                    clientSecret: client.secret
+                )
             ])
         }
     }
     
     func requestState(_ deviceId: UUID) async throws {
         try await errorBoundary {
-            let device = try getDeviceById(deviceId)
-            try await bluetoothService.dispatchCommand(RequestState(deviceId: device.id))
+            let (device, client) = try await getPairedDevice(deviceId)
+
+            try await executeCommand(
+                RequestState(
+                    deviceId: device.id,
+                    clientSlot: device.clientSlot,
+                    clientSecret: client.secret
+                )
+            )
         }
     }
     
     func startOutlet(_ deviceId: UUID, outletSlot: Int) async throws {
         try await errorBoundary {
-            let device = try getDeviceById(deviceId)
-            
+            let (device, client) = try await getPairedDevice(deviceId)
+
             let temperature = device.selectedTemperature
             let newRunningState = device.getRunningStateForTemperature(temperature: temperature, outletSlot: outletSlot)
-
-            try await bluetoothService.dispatchCommand(
+            
+            try await executeCommand(
                 OperateOutletControls(
                     deviceId: device.id,
+                    clientSlot: device.clientSlot,
+                    clientSecret: client.secret,
                     outletSlot0Running: outletSlot == Outlet.outletSlot0,
                     outletSlot1Running: outletSlot == Outlet.outletSlot1,
                     targetTemperature: temperature,
@@ -153,11 +200,13 @@ actor DeviceService: ModelActor {
     
     func updateSelectedTemperature(_ deviceId: UUID, targetTemperature: Double) async throws {
         try await errorBoundary {
-            let device = try getDeviceById(deviceId)
-            
-            try await bluetoothService.dispatchCommand(
+            let (device, client) = try await getPairedDevice(deviceId)
+
+            try await executeCommand(
                 OperateOutletControls(
                     deviceId: device.id,
+                    clientSlot: device.clientSlot,
+                    clientSecret: client.secret,
                     outletSlot0Running: device.isOutletRunning(outletSlot: Outlet.outletSlot0),
                     outletSlot1Running: device.isOutletRunning(outletSlot: Outlet.outletSlot1),
                     targetTemperature: targetTemperature,
@@ -169,32 +218,48 @@ actor DeviceService: ModelActor {
     
     func startPreset(_ deviceId: UUID, presetSlot: UInt8) async throws {
         try await errorBoundary {
-            let device = try getDeviceById(deviceId)
-            try await bluetoothService.dispatchCommand(StartPreset(deviceId: device.id, presetSlot: presetSlot))
+            let (device, client) = try await getPairedDevice(deviceId)
+
+            try await executeCommand(
+                StartPreset(
+                    deviceId: device.id,
+                    clientSlot: device.clientSlot,
+                    clientSecret: client.secret,
+                    presetSlot: presetSlot
+                )
+            )
         }
     }
     
     func pauseOutlets(_ deviceId: UUID) async throws {
         try await errorBoundary {
-            let device = try getDeviceById(deviceId)
-            try await bluetoothService.dispatchCommand(
+            let (device, client) = try await getPairedDevice(deviceId)
+
+            try await executeCommand(
                 OperateOutletControls(
-                   deviceId: device.id,
-                   outletSlot0Running: false,
-                   outletSlot1Running: false,
-                   targetTemperature: device.selectedTemperature,
-                   runningState: .paused
-               )
+                    deviceId: device.id,
+                    clientSlot: device.clientSlot,
+                    clientSecret: client.secret,
+                    outletSlot0Running: false,
+                    outletSlot1Running: false,
+                    targetTemperature: device.selectedTemperature,
+                    runningState: .paused
+                )
             )
         }
     }
     
     func requestOutletSettings(_ deviceId: UUID) async throws {
         try await errorBoundary {
-            let device = try getDeviceById(deviceId)
-            try await bluetoothService.dispatchCommands(
+            let (device, client) = try await getPairedDevice(deviceId)
+            try await executeCommands(
                 device.outlets.map({ outlet in
-                    RequestOutletSettings(deviceId: device.id, outletSlot: outlet.outletSlot)
+                    RequestOutletSettings(
+                        deviceId: device.id,
+                        clientSlot: device.clientSlot,
+                        clientSecret: client.secret,
+                        outletSlot: outlet.outletSlot
+                    )
                 })
             )
         }
@@ -203,11 +268,19 @@ actor DeviceService: ModelActor {
     func requestPresets(_ deviceId: UUID) async throws {
         try await errorBoundary {
             do {
-                let device = try getDeviceById(deviceId)
-                try await bluetoothService.dispatchCommands([
+                let (device, client) = try await getPairedDevice(deviceId)
+                try await executeCommands([
                     // Device settings include the default preset slot
-                    RequestDeviceSettings(deviceId: device.id),
-                    RequestPresetSlots(deviceId: device.id),
+                    RequestDeviceSettings(
+                        deviceId: device.id,
+                        clientSlot: device.clientSlot,
+                        clientSecret: client.secret
+                    ),
+                    RequestPresetSlots(
+                        deviceId: device.id,
+                        clientSlot: device.clientSlot,
+                        clientSecret: client.secret
+                    ),
                 ])
             }
             
@@ -216,22 +289,29 @@ actor DeviceService: ModelActor {
             // triggered in response to the first block, and it seems unlikely
             // that swift data will share the info between different modelContexts
             do {
-                let device = try getDeviceById(deviceId)
-                try await bluetoothService.dispatchCommands(
+                let (device, client) = try await getPairedDevice(deviceId)
+                try await executeCommands(
                     device.presets.map({ preset in
-                        RequestPresetDetails(deviceId: device.id, presetSlot: preset.presetSlot)
+                        RequestPresetDetails(
+                            deviceId: device.id,
+                            clientSlot: device.clientSlot,
+                            clientSecret: client.secret,
+                            presetSlot: preset.presetSlot
+                        )
                     })
                 )
             }
         }
     }
     
-    private func stopOutletsAndWaitForLockoutToExipire(_ device: Device) async throws {
+    private func stopOutletsAndWaitForLockoutToExipire(device: Device, client: Client) async throws {
         // Most update operations require the device to be stopped before they're permitted.
         if (!device.isStopped) {
-            try await bluetoothService.dispatchCommand(
+            try await executeCommand(
                 OperateOutletControls(
                    deviceId: device.id,
+                   clientSlot: device.clientSlot,
+                   clientSecret: client.secret,
                    outletSlot0Running: false,
                    outletSlot1Running: false,
                    targetTemperature: device.selectedTemperature,
@@ -252,7 +332,8 @@ actor DeviceService: ModelActor {
     }
     
     private func doUpdatePreset(
-        _ device: Device,
+        device: Device,
+        client: Client,
         presetSlot: UInt8,
         name: String,
         outletSlot: Int,
@@ -260,24 +341,42 @@ actor DeviceService: ModelActor {
         durationSeconds: Int,
         makeDefault: Bool
     ) async throws {
-        try await stopOutletsAndWaitForLockoutToExipire(device)
-        
+        try await stopOutletsAndWaitForLockoutToExipire(device: device, client: client)
+
         var commands: [DeviceCommand] = [
             UpdatePresetDetails(
                 deviceId: device.id,
+                clientSlot: device.clientSlot,
+                clientSecret: client.secret,
                 presetSlot: presetSlot,
                 name: name,
                 outletSlot: outletSlot,
                 targetTemperature: targetTemperature,
                 durationSeconds: durationSeconds),
-            RequestPresetDetails(deviceId: device.id, presetSlot: presetSlot)
+            RequestPresetDetails(
+                deviceId: device.id,
+                clientSlot: device.clientSlot,
+                clientSecret: client.secret,
+                presetSlot: presetSlot
+            )
         ]
         if (makeDefault) {
-            commands.append(UpdateDefaultPresetSlot(deviceId: device.id, presetSlot: presetSlot))
-            commands.append(RequestDeviceSettings(deviceId: device.id))
+            commands += [
+                UpdateDefaultPresetSlot(
+                    deviceId: device.id,
+                    clientSlot: device.clientSlot,
+                    clientSecret: client.secret,
+                    presetSlot: presetSlot
+                ),
+                RequestDeviceSettings(
+                    deviceId: device.id,
+                    clientSlot: device.clientSlot,
+                    clientSecret: client.secret
+                )
+            ]
         }
 
-        try await bluetoothService.dispatchCommands(commands)
+        try await executeCommands(commands)
     }
     
     func createPresetDetails(
@@ -289,11 +388,13 @@ actor DeviceService: ModelActor {
         makeDefault: Bool
     ) async throws {
         try await errorBoundary {
-            let device = try getDeviceById(deviceId)
+            let (device, client) = try await getPairedDevice(deviceId)
+
             // choose a slot
             if let availableSlot = device.nextAvailablePresetSlot {
                 try await doUpdatePreset(
-                    device,
+                    device: device,
+                    client: client,
                     presetSlot: availableSlot,
                     name: name,
                     outletSlot: outletSlot,
@@ -316,11 +417,12 @@ actor DeviceService: ModelActor {
         makeDefault: Bool
     ) async throws {
         try await errorBoundary {
-            let device = try getDeviceById(deviceId)
-            
+            let (device, client) = try await getPairedDevice(deviceId)
+
             if device.getPresetBySlot(presetSlot) != nil {
                 try await doUpdatePreset(
-                    device,
+                    device: device,
+                    client: client,
                     presetSlot: presetSlot,
                     name: name,
                     outletSlot: outletSlot,
@@ -334,13 +436,23 @@ actor DeviceService: ModelActor {
     
     func deletePresetDetails(_ deviceId: UUID, presetSlot: UInt8) async throws {
         try await errorBoundary {
-            let device = try getDeviceById(deviceId)
+            let (device, client) = try await getPairedDevice(deviceId)
+
             if device.getPresetBySlot(presetSlot) != nil {
-                try await stopOutletsAndWaitForLockoutToExipire(device)
-                
-                try await bluetoothService.dispatchCommands([
-                    DeletePresetDetails(deviceId: device.id, presetSlot: presetSlot),
-                    RequestPresetSlots(deviceId: device.id)
+                try await stopOutletsAndWaitForLockoutToExipire(device: device, client: client)
+
+                try await executeCommands([
+                    DeletePresetDetails(
+                        deviceId: device.id,
+                        clientSlot: device.clientSlot,
+                        clientSecret: client.secret,
+                        presetSlot: presetSlot
+                    ),
+                    RequestPresetSlots(
+                        deviceId: device.id,
+                        clientSlot: device.clientSlot,
+                        clientSecret: client.secret
+                    )
                 ])
             }
         }
@@ -348,10 +460,9 @@ actor DeviceService: ModelActor {
     
     func pair(_ deviceId: UUID) async throws {
         try await errorBoundary {
-            let device = try getDeviceById(deviceId)
             let client = try getClient()
-            try await bluetoothService.dispatchCommand(
-                PairDevice(deviceId: device.id, clientName: client.name)
+            try await executeCommand(
+                PairDevice(deviceId: deviceId, clientSlot: 0x00, clientSecret: PairingSecret.pairingClientSecret, clientName: client.name)
             )
         }
         try await bluetoothService.disconnect(deviceId)
@@ -359,27 +470,43 @@ actor DeviceService: ModelActor {
     
     func unpair(_ deviceId: UUID, clientSlot: UInt8) async throws {
         try await errorBoundary {
-            let device = try getDeviceById(deviceId)
-            
+            let (device, client) = try await getPairedDevice(deviceId)
+
+            try await stopOutletsAndWaitForLockoutToExipire(device: device, client: client)
+
             let isCurrentClient = device.clientSlot == clientSlot
             
-            try await stopOutletsAndWaitForLockoutToExipire(device)
-            
+            var thrown: Error? = nil
             do {
-                try await bluetoothService.dispatchCommands([
-                    UnpairDevice(deviceId: device.id, clientSlot: clientSlot),
-                    RequestPairedClientSlots(deviceId: device.id)
+                try await executeCommands([
+                    UnpairDevice(
+                        deviceId: device.id,
+                        clientSlot: device.clientSlot,
+                        clientSecret: client.secret,
+                        pairedClientSlot: clientSlot
+                    ),
+                    RequestPairedClientSlots(
+                        deviceId: device.id,
+                        clientSlot: device.clientSlot,
+                        clientSecret: client.secret
+                    )
                 ])
             } catch {
-                if isCurrentClient {
-                    // If we are already unpaired, the bluetooth unpair might fail
-                    // So reload the device and ensure we mark it as unpaired anyway
-                    try modelContext.transaction {
-                        let device = try getDeviceById(deviceId)
-                        UnpairSuccessNotification(deviceId: deviceId, clientSlot: clientSlot)
-                            .accept(DeviceNotificatonApplier(device: device, modelContext: modelContext))
-                    }
+                thrown = error
+            }
+
+            
+            if isCurrentClient {
+                // If we are already unpaired, the bluetooth unpair might fail
+                // So get rid of the paired device anyway
+                try modelContext.transaction {
+                    modelContext.delete(device)
                 }
+                try await bluetoothService.disconnect(deviceId)
+            }
+            
+            if let thrown {
+                throw thrown
             }
         }
     }
@@ -387,17 +514,26 @@ actor DeviceService: ModelActor {
     func requestPairedClients(_ deviceId: UUID) async throws {
         try await errorBoundary {
             do {
-                let device = try getDeviceById(deviceId)
-                try await bluetoothService.dispatchCommand(
-                    RequestPairedClientSlots(deviceId: device.id)
+                let (device, client) = try await getPairedDevice(deviceId)
+                try await executeCommand(
+                    RequestPairedClientSlots(
+                        deviceId: device.id,
+                        clientSlot: device.clientSlot,
+                        clientSecret: client.secret
+                    )
                 )
             }
             
             do {
-                let device = try getDeviceById(deviceId)
-                try await bluetoothService.dispatchCommands(
-                    device.pairedClients.map({ client in
-                        RequestPairedClientDetails(deviceId: device.id, clientSlot: client.clientSlot)
+                let (device, client) = try await getPairedDevice(deviceId)
+                try await executeCommands(
+                    device.pairedClients.map({ pairedClient in
+                        RequestPairedClientDetails(
+                            deviceId: device.id,
+                            clientSlot: device.clientSlot,
+                            clientSecret: client.secret,
+                            pairedClientSlot: pairedClient.clientSlot
+                        )
                     })
                 )
             }
@@ -406,17 +542,23 @@ actor DeviceService: ModelActor {
     
     func requestSettings(_ deviceId: UUID) async throws {
         try await errorBoundary {
-            let device = try getDeviceById(deviceId)
-            try await bluetoothService.dispatchCommand(RequestDeviceSettings(deviceId: device.id))
+            let (device, client) = try await getPairedDevice(deviceId)
+            try await executeCommand(
+                RequestDeviceSettings(
+                    deviceId: device.id,
+                    clientSlot: device.clientSlot,
+                    clientSecret: client.secret
+                )
+            )
         }
     }
     
     func updateOutletSettings(_ deviceId: UUID, outletSlot: Int, temperatureRange: ClosedRange<Double>, maximumDurationSeconds: Int) async throws {
         try await errorBoundary {
-            let device = try getDeviceById(deviceId)
+            let (device, client) = try await getPairedDevice(deviceId)
             
-            try await stopOutletsAndWaitForLockoutToExipire(device)
-            
+            try await stopOutletsAndWaitForLockoutToExipire(device: device, client: client)
+
             let presetClamping: [DeviceCommand] = device.presets
                 .filter({ $0.outlet.outletSlot == outletSlot })
                 .filter({ preset in
@@ -427,97 +569,156 @@ actor DeviceService: ModelActor {
                     let arr: [DeviceCommand] = [
                         UpdatePresetDetails(
                             deviceId: deviceId,
+                            clientSlot: device.clientSlot,
+                            clientSecret: client.secret,
                             presetSlot: preset.presetSlot,
                             name: preset.name,
                             outletSlot: outletSlot,
                             targetTemperature: preset.targetTemperature.clampToRange(range: temperatureRange),
                             durationSeconds: min(preset.durationSeconds, maximumDurationSeconds)
                         ),
-                        RequestPresetDetails(deviceId: deviceId, presetSlot: preset.presetSlot)
+                        RequestPresetDetails(
+                            deviceId: deviceId,
+                            clientSlot: device.clientSlot,
+                            clientSecret: client.secret,
+                            presetSlot: preset.presetSlot
+                        )
                     ]
                     return arr
                 })
             
-            try await bluetoothService.dispatchCommands(presetClamping + [
+            try await executeCommands(presetClamping + [
                 UpdateOutletSettings(
                     deviceId: device.id,
+                    clientSlot: device.clientSlot,
+                    clientSecret: client.secret,
                     outletSlot: outletSlot,
                     maximumDurationSeconds: maximumDurationSeconds,
                     maximumTemperature: temperatureRange.upperBound,
                     minimumTemperature: temperatureRange.lowerBound,
                     thresholdTemperature: temperatureRange.lowerBound
                 ),
-                RequestOutletSettings(deviceId: device.id, outletSlot: outletSlot)
+                RequestOutletSettings(
+                    deviceId: device.id,
+                    clientSlot: device.clientSlot,
+                    clientSecret: client.secret,
+                    outletSlot: outletSlot
+                )
             ])
         }
     }
     
     func updateControllerSettings(_ deviceId: UUID, standbyLightingEnabled: Bool, outletsSwitched: Bool) async throws {
         try await errorBoundary {
-            let device = try getDeviceById(deviceId)
-            
-            try await stopOutletsAndWaitForLockoutToExipire(device)
-            
-            try await bluetoothService.dispatchCommands([
-                UpdateControllerSettings(deviceId: device.id, standbyLightingEnabled: standbyLightingEnabled, outletsSwitched: outletsSwitched),
-                RequestDeviceSettings(deviceId: device.id)
+            let (device, client) = try await getPairedDevice(deviceId)
+
+            try await stopOutletsAndWaitForLockoutToExipire(device: device, client: client)
+
+            try await executeCommands([
+                UpdateControllerSettings(
+                    deviceId: device.id,
+                    clientSlot: device.clientSlot,
+                    clientSecret: client.secret,
+                    standbyLightingEnabled: standbyLightingEnabled,
+                    outletsSwitched: outletsSwitched
+                ),
+                RequestDeviceSettings(
+                    deviceId: device.id,
+                    clientSlot: device.clientSlot,
+                    clientSecret: client.secret
+                )
             ])
         }
     }
     
     func updateWirelessRemoteButtonSettings(_ deviceId: UUID, wirelessRemoteButtonOutletsEnabled: [Int]) async throws {
         try await errorBoundary {
-            let device = try getDeviceById(deviceId)
-            
-            try await stopOutletsAndWaitForLockoutToExipire(device)
-            
-            try await bluetoothService.dispatchCommands([
+            let (device, client) = try await getPairedDevice(deviceId)
+
+            try await stopOutletsAndWaitForLockoutToExipire(device: device, client: client)
+
+            try await executeCommands([
                 UpdateWirelessRemoteButtonSettings(
                     deviceId: device.id,
+                    clientSlot: device.clientSlot,
+                    clientSecret: client.secret,
                     outletSlotsEnabled: wirelessRemoteButtonOutletsEnabled
                 ),
-                RequestDeviceSettings(deviceId: device.id)
+                RequestDeviceSettings(
+                    deviceId: device.id,
+                    clientSlot: device.clientSlot,
+                    clientSecret: client.secret
+                )
             ])
         }
     }
     
     func restartDevice(_ deviceId: UUID) async throws {
         try await errorBoundary {
-            let device = try getDeviceById(deviceId)
+            let (device, client) = try await getPairedDevice(deviceId)
 
-            try await stopOutletsAndWaitForLockoutToExipire(device)
+            try await stopOutletsAndWaitForLockoutToExipire(device: device, client: client)
 
-            try await bluetoothService.dispatchCommand(RestartDevice(deviceId: device.id))
+            try await executeCommand(
+                RestartDevice(
+                    deviceId: device.id,
+                    clientSlot: device.clientSlot,
+                    clientSecret: client.secret
+                )
+            )
         }
     }
 
     func factoryReset(_ deviceId: UUID) async throws {
         try await errorBoundary {
-            let device = try getDeviceById(deviceId)
+            let (device, client) = try await getPairedDevice(deviceId)
 
-            try await stopOutletsAndWaitForLockoutToExipire(device)
-
-            try await bluetoothService.dispatchCommand(FactoryResetDevice(deviceId: device.id))
+            try await stopOutletsAndWaitForLockoutToExipire(device: device, client: client)
+            
+            try await executeCommand(
+                FactoryResetDevice(
+                    deviceId: device.id,
+                    clientSlot: device.clientSlot,
+                    clientSecret: client.secret
+                )
+            )
         }
     }
 
 
     func requestTechnicalInformation(_ deviceId: UUID) async throws {
         try await errorBoundary {
-            let device = try getDeviceById(deviceId)
-            try await bluetoothService.requestDeviceInformation(deviceId)
-            try await bluetoothService.dispatchCommand(RequestTechnicalInformation(deviceId: device.id))
+            let (device, client) = try await getPairedDevice(deviceId)
+
+            try await executeCommands([
+                RequestDeviceInformation(
+                    deviceId: device.id,
+                    clientSlot: device.clientSlot,
+                    clientSecret: client.secret
+                ),
+                RequestTechnicalInformation(
+                    deviceId: device.id,
+                    clientSlot: device.clientSlot,
+                    clientSecret: client.secret
+                )
+            ])
         }
     }
     
     
     func unknownCommand(_ deviceId: UUID) async throws {
         try await errorBoundary {
-            let device = try getDeviceById(deviceId)
+            let (device, client) = try await getPairedDevice(deviceId)
 
-            try await stopOutletsAndWaitForLockoutToExipire(device)
+            try await stopOutletsAndWaitForLockoutToExipire(device: device, client: client)
 
-            try await bluetoothService.dispatchCommand(UnknownCommand(deviceId: device.id))
+            try await executeCommand(
+                UnknownCommand(
+                    deviceId: device.id,
+                    clientSlot: device.clientSlot,
+                    clientSecret: client.secret
+                )
+            )
         }
     }
 }

@@ -12,9 +12,11 @@ extension BluetoothServiceError: LocalizedError {
         return switch self {
         case .bluetoothUnavailable:
             "Bluetooth Unavailable"
-        case .cannotConnectToDevice, .cannotMakeDeviceReady:
+        case .peripheralNotFound, .cannotConnectToPeripheral, .cannotMakePeripheralReady:
             "Cannot Contact Device"
-        case .operationTimedOut:
+        case .notificationNotReceived:
+            "Device Not Responding"
+        case .timedOut:
             "Timed Out"
         default:
             "Uncategorized Error"
@@ -25,11 +27,15 @@ extension BluetoothServiceError: LocalizedError {
         return switch self {
         case .bluetoothUnavailable:
             "Bluetooth not available or permission not granted to application"
-        case .cannotConnectToDevice:
+        case .peripheralNotFound:
+            "Could not find the device"
+        case .cannotConnectToPeripheral:
             "Could not connect to the device"
-        case .cannotMakeDeviceReady:
+        case .cannotMakePeripheralReady:
             "Failed to initialise the connected device"
-        case .operationTimedOut:
+        case .notificationNotReceived:
+            "Pairing may have been removed by another client"
+        case .timedOut:
             "Timed out when making a request to the device"
         default:
             "Unknown reason"
@@ -40,9 +46,11 @@ extension BluetoothServiceError: LocalizedError {
         return switch self {
         case .bluetoothUnavailable:
             "Check bluetooth is turned on and the application has been granted permission"
-        case .cannotConnectToDevice:
+        case .peripheralNotFound, .cannotConnectToPeripheral:
             "Check you are in range of the device"
-        case .operationTimedOut:
+        case .notificationNotReceived:
+            "If the problem persists, try deleting an re-pairing"
+        case .timedOut:
             "Try again"
         default:
             nil

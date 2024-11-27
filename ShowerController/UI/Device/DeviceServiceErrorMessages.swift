@@ -14,6 +14,10 @@ extension DeviceServiceError: LocalizedError {
             "Device Not Found"
         case .clientNotFound:
             "Client Not Found"
+        case .deviceNotPaired:
+            "Device Not Paired"
+        case .commandFailed:
+            "Operation Failed"
         case .internalError:
             "Internal Error"
         }
@@ -21,6 +25,8 @@ extension DeviceServiceError: LocalizedError {
     
     var failureReason: String? {
         return switch self {
+        case .deviceNotFound:
+            "Device rejected the request"
         default:
             "Unknown reason"
         }

@@ -7,7 +7,6 @@
 
 import Foundation
 import SwiftData
-import CoreBluetooth
 
 enum RunningState: String, Codable { case off, running, cold, paused }
 
@@ -21,7 +20,8 @@ class Device {
     @Attribute(.unique)
     private(set) var id: UUID
     private(set)var name: String
-    
+    fileprivate(set) var clientSlot: UInt8
+
     fileprivate(set) var nickname: String?
     var manufacturerName: String
     var modelNumber: String
@@ -37,7 +37,6 @@ class Device {
     private(set) var presets: [Preset]
     fileprivate(set) var defaultPresetSlot: UInt8?
 
-    fileprivate(set) var clientSlot: UInt8?
     @Relationship(deleteRule: .cascade, inverse: \PairedClient.device)
     private(set) var pairedClients: [PairedClient]
     
@@ -94,6 +93,7 @@ class Device {
     init(
         id: UUID,
         name: String,
+        clientSlot: UInt8,
         nickname: String? = nil,
         manufacturerName: String = "",
         modelNumber: String = "",
@@ -104,7 +104,6 @@ class Device {
         outletsSwitched: Bool = false,
         presets: [Preset] = [],
         defaultPresetSlot: UInt8? = nil,
-        clientSlot: UInt8? = nil,
         pairedClients: [PairedClient] = [],
         technicalInformation: TechnicalInformation? = nil,
         standbyLightingEnabled: Bool = true,
@@ -118,6 +117,7 @@ class Device {
     ) {
         self.id = id
         self.name = name
+        self.clientSlot = clientSlot
         self.nickname = nickname
         self.manufacturerName = manufacturerName
         self.modelNumber = modelNumber
@@ -128,7 +128,6 @@ class Device {
         self.outletsSwitched = outletsSwitched
         self.presets = presets
         self.defaultPresetSlot = defaultPresetSlot
-        self.clientSlot = clientSlot
         self.pairedClients = pairedClients
         self.technicalInformation = technicalInformation
         self.standbyLightingEnabled = standbyLightingEnabled
@@ -246,15 +245,13 @@ class DeviceNotificatonApplier: DeviceNotificationVisitor {
     }
     
     func visit(_ notification: PairSuccessNotification) {
-        device.clientSlot = notification.clientSlot
+        // Nothing to do.
+        // TODO: Consider separating this notification from the other DeviceNotifications
     }
     
     func visit(_ notification: UnpairSuccessNotification) {
         if let removed = device.removePairedClientBySlot(notification.clientSlot) {
             modelContext.delete(removed)
-        }
-        if (device.clientSlot == notification.clientSlot) {
-            device.clientSlot = nil
         }
     }
     

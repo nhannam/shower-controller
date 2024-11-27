@@ -45,7 +45,7 @@ struct PairingView: View {
         await tools.alertOnError {
             await stopScan()
             isScanning = true
-            try await tools.deviceService.startScan()
+            try await tools.bluetoothService.startScan()
         }
         isScanning = false
     }
@@ -53,7 +53,7 @@ struct PairingView: View {
     func stopScan() async {
         await tools.alertOnError {
             Self.logger.debug("PairingView stopping scan")
-            try await tools.deviceService.stopScan()
+            try await tools.bluetoothService.stopScan()
             isScanning = false
         }
     }

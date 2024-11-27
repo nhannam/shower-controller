@@ -46,7 +46,8 @@ struct FailedNotification: DeviceOperationStatus, DeviceNotification {
 struct PairSuccessNotification: DeviceNotification {
     let deviceId: UUID
     let clientSlot: UInt8
-    
+    let name: String
+
     func accept(_ visitor: any DeviceNotificationVisitor) {
         visitor.visit(self)
     }
@@ -150,7 +151,7 @@ struct OutletSettingsNotification: DeviceNotification, OutletNotification {
 struct DeviceNicknameNotification: DeviceNotification {
     let deviceId: UUID
     let clientSlot: UInt8
-    let nickname: String
+    let nickname: String?
 
     func accept(_ visitor: any DeviceNotificationVisitor) {
         visitor.visit(self)

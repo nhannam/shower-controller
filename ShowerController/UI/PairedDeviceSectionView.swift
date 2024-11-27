@@ -13,7 +13,7 @@ struct PairedDeviceSectionView: View {
 
     @Environment(Toolbox.self) private var tools
 
-    @Query(filter: DeviceService.PAIRED_PREDICATE) var devices: [Device]
+    @Query var devices: [Device]
 
     @State var isSubmitted = false
 
@@ -41,9 +41,7 @@ struct PairedDeviceSectionView: View {
     func unpair(device: Device) {
         isSubmitted = true
         tools.submitJobWithErrorHandler {
-            if let clientSlot = device.clientSlot {
-                try await tools.deviceService.unpair(device.id, clientSlot: clientSlot)
-            }
+            try await tools.deviceService.unpair(device.id, clientSlot: device.clientSlot)
         } finally: {
             isSubmitted = false
         }

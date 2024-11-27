@@ -9,21 +9,23 @@ import Foundation
 
 protocol DeviceCommand: Sendable {
     var deviceId: UUID { get }
+    var clientSlot: UInt8 { get }
+    var clientSecret: Data { get }
     func accept<V: DeviceCommandVisitor>(_ visitor: V) async throws -> V.Response
 }
 
-protocol PairedDeviceCommand: DeviceCommand {}
-
-protocol PresetCommand: PairedDeviceCommand {
+protocol PresetCommand: DeviceCommand {
     var presetSlot: UInt8 { get }
 }
 
-protocol ClientCommand: PairedDeviceCommand {
-    var clientSlot: UInt8 { get }
+protocol PairedClientCommand: DeviceCommand {
+    var pairedClientSlot: UInt8 { get }
 }
 
 struct PairDevice: DeviceCommand {
     let deviceId: UUID
+    var clientSlot: UInt8
+    var clientSecret: Data
     let clientName: String
     
     func accept<V: DeviceCommandVisitor>(_ visitor: V) async throws -> V.Response {
@@ -31,16 +33,30 @@ struct PairDevice: DeviceCommand {
     }
 }
 
-struct RequestNickname: PairedDeviceCommand {
+struct RequestDeviceInformation: DeviceCommand {
     let deviceId: UUID
-    
+    var clientSlot: UInt8
+    var clientSecret: Data
+
     func accept<V: DeviceCommandVisitor>(_ visitor: V) async throws -> V.Response {
         return try await visitor.visit(self)
     }
 }
 
-struct UpdateNickname: PairedDeviceCommand {
+struct RequestNickname: DeviceCommand {
     let deviceId: UUID
+    var clientSlot: UInt8
+    var clientSecret: Data
+
+    func accept<V: DeviceCommandVisitor>(_ visitor: V) async throws -> V.Response {
+        return try await visitor.visit(self)
+    }
+}
+
+struct UpdateNickname: DeviceCommand {
+    let deviceId: UUID
+    var clientSlot: UInt8
+    var clientSecret: Data
     let nickname: String
     
     func accept<V: DeviceCommandVisitor>(_ visitor: V) async throws -> V.Response {
@@ -48,17 +64,21 @@ struct UpdateNickname: PairedDeviceCommand {
     }
 }
 
-struct RequestState: PairedDeviceCommand {
+struct RequestState: DeviceCommand {
     let deviceId: UUID
-    
+    var clientSlot: UInt8
+    var clientSecret: Data
+
     func accept<V: DeviceCommandVisitor>(_ visitor: V) async throws -> V.Response {
         return try await visitor.visit(self)
     }
 }
 
-struct RequestDeviceSettings: PairedDeviceCommand{
+struct RequestDeviceSettings: DeviceCommand{
     let deviceId: UUID
-    
+    var clientSlot: UInt8
+    var clientSecret: Data
+
     func accept<V: DeviceCommandVisitor>(_ visitor: V) async throws -> V.Response {
         return try await visitor.visit(self)
     }
@@ -66,6 +86,8 @@ struct RequestDeviceSettings: PairedDeviceCommand{
 
 struct UpdateDefaultPresetSlot: PresetCommand {
     let deviceId: UUID
+    var clientSlot: UInt8
+    var clientSecret: Data
     let presetSlot: UInt8
     
     func accept<V: DeviceCommandVisitor>(_ visitor: V) async throws -> V.Response {
@@ -73,16 +95,20 @@ struct UpdateDefaultPresetSlot: PresetCommand {
     }
 }
 
-struct RequestPresetSlots: PairedDeviceCommand {
+struct RequestPresetSlots: DeviceCommand {
     let deviceId: UUID
-    
+    var clientSlot: UInt8
+    var clientSecret: Data
+
     func accept<V: DeviceCommandVisitor>(_ visitor: V) async throws -> V.Response {
         return try await visitor.visit(self)
     }
 }
 
-struct UpdateControllerSettings: PairedDeviceCommand {
+struct UpdateControllerSettings: DeviceCommand {
     let deviceId: UUID
+    var clientSlot: UInt8
+    var clientSecret: Data
     let standbyLightingEnabled: Bool
     let outletsSwitched: Bool
 
@@ -91,8 +117,10 @@ struct UpdateControllerSettings: PairedDeviceCommand {
     }
 }
 
-struct UpdateOutletSettings: PairedDeviceCommand {
+struct UpdateOutletSettings: DeviceCommand {
     let deviceId: UUID
+    var clientSlot: UInt8
+    var clientSecret: Data
     let outletSlot: Int
     let maximumDurationSeconds: Int
     let maximumTemperature: Double
@@ -104,8 +132,10 @@ struct UpdateOutletSettings: PairedDeviceCommand {
     }
 }
 
-struct RequestOutletSettings: PairedDeviceCommand {
+struct RequestOutletSettings: DeviceCommand {
     let deviceId: UUID
+    var clientSlot: UInt8
+    var clientSecret: Data
     let outletSlot: Int
 
     func accept<V: DeviceCommandVisitor>(_ visitor: V) async throws -> V.Response {
@@ -113,8 +143,10 @@ struct RequestOutletSettings: PairedDeviceCommand {
     }
 }
 
-struct UpdateWirelessRemoteButtonSettings: PairedDeviceCommand {
+struct UpdateWirelessRemoteButtonSettings: DeviceCommand {
     let deviceId: UUID
+    var clientSlot: UInt8
+    var clientSecret: Data
     let outletSlotsEnabled: [Int]
 
     func accept<V: DeviceCommandVisitor>(_ visitor: V) async throws -> V.Response {
@@ -122,8 +154,10 @@ struct UpdateWirelessRemoteButtonSettings: PairedDeviceCommand {
     }
 }
 
-struct OperateOutletControls: PairedDeviceCommand {
+struct OperateOutletControls: DeviceCommand {
     let deviceId: UUID
+    var clientSlot: UInt8
+    var clientSecret: Data
     let outletSlot0Running: Bool
     let outletSlot1Running: Bool
     let targetTemperature: Double
@@ -136,6 +170,8 @@ struct OperateOutletControls: PairedDeviceCommand {
 
 struct RequestPresetDetails: PresetCommand {
     let deviceId: UUID
+    var clientSlot: UInt8
+    var clientSecret: Data
     let presetSlot: UInt8
     
     func accept<V: DeviceCommandVisitor>(_ visitor: V) async throws -> V.Response {
@@ -145,6 +181,8 @@ struct RequestPresetDetails: PresetCommand {
 
 struct UpdatePresetDetails: PresetCommand {
     let deviceId: UUID
+    var clientSlot: UInt8
+    var clientSecret: Data
     let presetSlot: UInt8
     let name: String
     let outletSlot: Int
@@ -158,6 +196,8 @@ struct UpdatePresetDetails: PresetCommand {
 
 struct DeletePresetDetails: PresetCommand {
     let deviceId: UUID
+    var clientSlot: UInt8
+    var clientSecret: Data
     let presetSlot: UInt8
     
     func accept<V: DeviceCommandVisitor>(_ visitor: V) async throws -> V.Response {
@@ -167,6 +207,8 @@ struct DeletePresetDetails: PresetCommand {
 
 struct StartPreset: PresetCommand {
     let deviceId: UUID
+    var clientSlot: UInt8
+    var clientSecret: Data
     let presetSlot: UInt8
     
     func accept<V: DeviceCommandVisitor>(_ visitor: V) async throws -> V.Response {
@@ -174,66 +216,82 @@ struct StartPreset: PresetCommand {
     }
 }
 
-struct UnpairDevice: ClientCommand {
+struct UnpairDevice: PairedClientCommand {
     let deviceId: UUID
-    let clientSlot: UInt8
+    var clientSlot: UInt8
+    var clientSecret: Data
+    let pairedClientSlot: UInt8
     
     func accept<V: DeviceCommandVisitor>(_ visitor: V) async throws -> V.Response {
         return try await visitor.visit(self)
     }
 }
 
-struct RequestPairedClientSlots: PairedDeviceCommand {
+struct RequestPairedClientSlots: DeviceCommand {
     let deviceId: UUID
+    var clientSlot: UInt8
+    var clientSecret: Data
+
+    func accept<V: DeviceCommandVisitor>(_ visitor: V) async throws -> V.Response {
+        return try await visitor.visit(self)
+    }
+}
+
+struct RequestPairedClientDetails: PairedClientCommand {
+    let deviceId: UUID
+    var clientSlot: UInt8
+    var clientSecret: Data
+    let pairedClientSlot: UInt8
     
     func accept<V: DeviceCommandVisitor>(_ visitor: V) async throws -> V.Response {
         return try await visitor.visit(self)
     }
 }
 
-struct RequestPairedClientDetails: ClientCommand {
+struct RestartDevice: DeviceCommand {
     let deviceId: UUID
-    let clientSlot: UInt8
-    
-    func accept<V: DeviceCommandVisitor>(_ visitor: V) async throws -> V.Response {
-        return try await visitor.visit(self)
-    }
-}
-
-struct RestartDevice: PairedDeviceCommand {
-    let deviceId: UUID
+    var clientSlot: UInt8
+    var clientSecret: Data
 
     func accept<V: DeviceCommandVisitor>(_ visitor: V) async throws -> V.Response {
         return try await visitor.visit(self)
     }
 }
 
-struct FactoryResetDevice: PairedDeviceCommand {
+struct FactoryResetDevice: DeviceCommand {
     let deviceId: UUID
+    var clientSlot: UInt8
+    var clientSecret: Data
 
     func accept<V: DeviceCommandVisitor>(_ visitor: V) async throws -> V.Response {
         return try await visitor.visit(self)
     }
 }
 
-struct RequestTechnicalInformation: PairedDeviceCommand {
+struct RequestTechnicalInformation: DeviceCommand {
     let deviceId: UUID
+    var clientSlot: UInt8
+    var clientSecret: Data
 
     func accept<V: DeviceCommandVisitor>(_ visitor: V) async throws -> V.Response {
         return try await visitor.visit(self)
     }
 }
 
-struct UnknownRequestTechnicalInformation: PairedDeviceCommand {
+struct UnknownRequestTechnicalInformation: DeviceCommand {
     let deviceId: UUID
+    var clientSlot: UInt8
+    var clientSecret: Data
 
     func accept<V: DeviceCommandVisitor>(_ visitor: V) async throws -> V.Response {
         return try await visitor.visit(self)
     }
 }
 
-struct UnknownCommand: PairedDeviceCommand {
+struct UnknownCommand: DeviceCommand {
     let deviceId: UUID
+    var clientSlot: UInt8
+    var clientSecret: Data
 
     func accept<V: DeviceCommandVisitor>(_ visitor: V) async throws -> V.Response {
         return try await visitor.visit(self)
@@ -250,6 +308,7 @@ protocol DeviceCommandVisitor {
     func visit(_ command: RequestPairedClientSlots) async throws -> Response
     func visit(_ command: RequestPairedClientDetails) async throws -> Response
 
+    func visit(_ command: RequestDeviceInformation) async throws -> Response
     func visit(_ command: RequestNickname) async throws -> Response
     func visit(_ command: UpdateNickname) async throws -> Response
     

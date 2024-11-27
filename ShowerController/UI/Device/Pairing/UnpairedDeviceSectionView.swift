@@ -9,15 +9,17 @@ import SwiftUI
 import SwiftData
 
 struct UnpairedDeviceSectionView: View {
-    @Query(filter: DeviceService.UNPAIRED_PREDICATE) private var devices: [Device]
+    @Query private var devices: [Device]
+    @Query private var scanResults: [ScanResult]
     
     var isScanning: Bool
     
     var body: some View {
+        let deviceIds = devices.map(\.id)
         Section(
             content: {
-                ForEach(devices) { device in
-                    PairDeviceButton(device: device)
+                ForEach(scanResults.filter({ !deviceIds.contains($0.id)})) { scanResult in
+                    PairDeviceButton(scanResult: scanResult)
                 }
             },
             header: {
