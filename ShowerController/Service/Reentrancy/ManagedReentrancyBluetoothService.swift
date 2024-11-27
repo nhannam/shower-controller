@@ -34,10 +34,10 @@ actor ManagedReentrancyBluetoothService: BluetoothService {
         }
     }
 
-    func dispatchCommand(_ command: any DeviceCommand) async throws -> any DeviceNotification {
+    func executeCommand(_ command: any DeviceCommand) async throws -> any DeviceNotification {
         try await errorBoundary {
             try await self.executionChannel.submit {
-                return try await self.bluetoothService.dispatchCommand(command)
+                return try await self.bluetoothService.executeCommand(command)
             }
         }
     }

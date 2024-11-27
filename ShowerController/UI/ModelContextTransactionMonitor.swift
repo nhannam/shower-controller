@@ -101,6 +101,8 @@ struct ModelContextTransactionMonitor: ViewModifier {
                         try handleUpdate(historyUpdate: update)
                     case .update(let update as DefaultHistoryUpdate<TechnicalInformation>):
                         try handleUpdate(historyUpdate: update)
+                    case .update(let update as DefaultHistoryUpdate<ScanResult>):
+                        try handleUpdate(historyUpdate: update)
 
                     case .update(_):
                         Self.logger.debug("Update received for \(String(describing: change.changedPersistentIdentifier))")
