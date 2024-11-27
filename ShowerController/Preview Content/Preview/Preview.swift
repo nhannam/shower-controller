@@ -25,7 +25,7 @@ struct Preview<Component: View>: View {
         } catch {
             fatalError("Could not initialize ModelContainer")
         }
-
+        
         do {
             try modelContext.transaction {
                 insertClients()
@@ -55,7 +55,6 @@ struct Preview<Component: View>: View {
     
     func insertDevices() {
         modelContext.insert(PreviewData.data.device)
-        modelContext.insert(PreviewData.data.unpairedDevice)
     }
 }
 
@@ -84,6 +83,7 @@ class PreviewData {
     let device = Device(
         id: UUID(),
         name: "Preview Device",
+        clientSlot: 0,
         nickname: "Bathroom",
         manufacturerName: "Moira",
         modelNumber: "1001",
@@ -96,7 +96,6 @@ class PreviewData {
             Preset(presetSlot: 0, name: "Warm Bath", outlet: outlet1, targetTemperature: 45, durationSeconds: 1220)
         ],
         defaultPresetSlot: 0,
-        clientSlot: 0,
         pairedClients: [
             PairedClient(clientSlot: 0, name: "Paired Client 0"),
             PairedClient(clientSlot: 1, name: "Paired Client 1")
@@ -117,12 +116,8 @@ class PreviewData {
         actualTemperature: 30,
         secondsRemaining: 320
     )
-    let unpairedDevice = Device(
+    let scanResult = ScanResult(
         id: UUID(),
-        name: "Unpaired Device",
-        outlets: [
-            Outlet(outletSlot: Outlet.outletSlot0, type: .overhead),
-            Outlet(outletSlot: Outlet.outletSlot1, type: .bath)
-        ]
+        name: "Unpaired Device"
     )
 }

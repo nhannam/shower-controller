@@ -103,6 +103,7 @@ extension ModelContainer {
             for:
                 Client.self,
                 Device.self,
+                ScanResult.self,
                 TransactionMonitorPosition.self,
             configurations: ModelConfiguration(
                 isStoredInMemoryOnly: isStoredInMemoryOnly

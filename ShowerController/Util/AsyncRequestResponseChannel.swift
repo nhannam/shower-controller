@@ -12,10 +12,10 @@ enum AsyncRequestResponseChannelError: Error {
     case noResponse
 }
 
-class AsyncRequestResponseChannel<Response: Sendable> {
+class AsyncRequestResponseChannel {
     private let logger = LoggerFactory.logger(AsyncRequestResponseChannel.self)
     
-    private var requestChannel: AsyncChannel<Responding> = AsyncChannel()
+    private var requestChannel: AsyncChannel<any Responding> = AsyncChannel()
     
     func start(isolation: isolated (any Actor)? = #isolation) async {
         logger.info("Starting channel processing")
@@ -33,9 +33,9 @@ class AsyncRequestResponseChannel<Response: Sendable> {
         requestChannel.finish()
     }
 
-    func submit(isolation: isolated (any Actor)? = #isolation, @_inheritActorContext operation: @escaping @Sendable () async throws -> Response) async throws -> Response {
+    func submit<Response: Sendable>(isolation: isolated (any Actor)? = #isolation, @_inheritActorContext operation: @escaping @Sendable () async throws -> Response) async throws -> Response {
         // Send request to channel along with a continuation that will be called with the response
-        let responding = Responding(operation: operation)
+        let responding = SendableResponding(operation: operation)
         await requestChannel.send(responding)
         do {
             return try await responding.awaitResponse()
@@ -45,8 +45,16 @@ class AsyncRequestResponseChannel<Response: Sendable> {
     }
     
 
-    final class Responding: Sendable {
-        private let logger = LoggerFactory.logger(Responding.self)
+    protocol Responding: Sendable {
+        associatedtype Response : Sendable
+
+        func execute() async
+        func awaitResponse() async throws -> Self.Response
+    }
+    
+
+    final class SendableResponding<Response: Sendable>: Responding {
+        private let logger = LoggerFactory.logger(SendableResponding.self)
 
         private let operation: @Sendable () async throws -> Response
         private let responseStream: AsyncThrowingStream<Response, Error>

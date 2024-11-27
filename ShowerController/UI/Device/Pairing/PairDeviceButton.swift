@@ -13,7 +13,7 @@ struct PairDeviceButton: View {
     
     @Environment(Toolbox.self) private var tools
 
-    var device: Device
+    var scanResult: ScanResult
     
     @State private var isSubmitted = false
 
@@ -22,7 +22,7 @@ struct PairDeviceButton: View {
             action: startPairing,
             label: {
                 Label(
-                    title: { Text(device.name) },
+                    title: { Text(scanResult.name) },
                     icon: {
                         if (isSubmitted) {
                             ProgressView()
@@ -39,7 +39,7 @@ struct PairDeviceButton: View {
     func startPairing() {
         isSubmitted = true
         tools.submitJobWithErrorHandler {
-            try await tools.deviceService.pair(device.id)
+            try await tools.deviceService.pair(scanResult.id)
         } finally: {
             isSubmitted = false
         }
@@ -49,7 +49,7 @@ struct PairDeviceButton: View {
 #Preview {
     Preview {
         PairDeviceButton(
-            device: PreviewData.data.unpairedDevice
+            scanResult: PreviewData.data.scanResult
         )
     }
 }

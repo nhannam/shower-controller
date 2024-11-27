@@ -7,23 +7,20 @@
 
 import Foundation
 import AsyncBluetooth
+@preconcurrency import Combine
 
 actor CommandDispatcher {
     private static let logger = LoggerFactory.logger(CommandDispatcher.self)
 
     let peripheral: Peripheral
-    let clientSlot: UInt8
-    let clientSecret: Data
     
-    init(peripheral: Peripheral, dataClientSlot: UInt8, clientSecret: Data) {
+    init(peripheral: Peripheral) {
         self.peripheral = peripheral
-        self.clientSlot = dataClientSlot
-        self.clientSecret = clientSecret
     }
 }
 
 extension CommandDispatcher: DeviceCommandVisitor {
-    typealias Response = Void
+    typealias Response = DeviceNotification
     
     private func writeData(payloadWithCrc: Data) async throws {
         var startIndex = 0
@@ -41,129 +38,226 @@ extension CommandDispatcher: DeviceCommandVisitor {
         Self.logger.debug("Written: \(payloadWithCrc.hexDescription)")
     }
     
-    private func writeData(_ payload: Data, clientSecret: Data) async throws {
-        let withCrc = payload.withCrc(clientSecret: clientSecret)
-        try await writeData(payloadWithCrc: withCrc)
+    private func writeData(_ payload: Data, command: DeviceCommand) async throws -> DeviceNotification {
+        let notificationData = PublisherAsyncSequence<Data>(
+            valuesPublisher: await peripheral.characteristicValueUpdatedPublisher
+                .filter { $0.characteristic.uuid == Characteristic.CHARACTERISTIC_NOTIFICATIONS }
+                .compactMap(\.value)
+        )
+        
+        let payloadWithCrc = payload.withCrc(clientSecret: command.clientSecret)
+        try await writeData(payloadWithCrc: payloadWithCrc)
+        
+        let notificationParser = NotificationParser(peripheral: peripheral, command: command)
+        let dataAccumulator = DataAccumulator(clientSlot: command.clientSlot)
+        notificationLoop: for await notification in notificationData
+            .compactMap({ data in await dataAccumulator.accumulate(data) })
+            .compactMap({ data in
+                notificationParser.parseNotification(data)
+            }) {
+//            if try await command.accept(IsExpectedNotificationTypeVisitor(notification)) {
+                return notification
+//            }
+        }
+        
+        throw BluetoothServiceError.notificationNotReceived
     }
     
-    func visit(_ command: PairDevice) async throws {
+    func visit(_ command: PairDevice) async throws -> DeviceNotification {
         let name = command.clientName.data(using: .utf8)!.withPaddingTo(length: 20)
-        let payload = Data(clientSecret + name)
+        let payload = Data(command.clientSecret + name)
         
-        let data = Data([0x00, 0xeb, UInt8(payload.count)] + payload)
+        let data = Data([command.clientSlot, 0xeb, UInt8(payload.count)] + payload)
         
-        try await writeData(
+        return try await writeData(
             data,
-            clientSecret: PairingSecret.pairingClientSecret
+            command: command
         )
     }
     
-    func visit(_ command: UnpairDevice) async throws {
-        try await writeData(Data([clientSlot, 0xeb, 0x01, command.clientSlot]), clientSecret: clientSecret)
+    func visit(_ command: UnpairDevice) async throws -> DeviceNotification {
+        return try await writeData(
+            Data([command.clientSlot, 0xeb, 0x01, command.pairedClientSlot]),
+            command: command
+        )
     }
     
-    func visit(_ command: RequestPairedClientSlots) async throws {
-        try await writeData(Data([clientSlot, 0x6b, 0x01, 0x00]), clientSecret: clientSecret)
+    func visit(_ command: RequestPairedClientSlots) async throws -> DeviceNotification {
+        return try await writeData(
+            Data([command.clientSlot, 0x6b, 0x01, 0x00]),
+            command: command
+        )
     }
     
-    func visit(_ command: RequestPairedClientDetails) async throws {
-        try await writeData(Data([clientSlot, 0x6b, 0x01, 0x10 + command.clientSlot]), clientSecret: clientSecret)
+    func visit(_ command: RequestPairedClientDetails) async throws -> DeviceNotification {
+        return try await writeData(
+            Data([command.clientSlot, 0x6b, 0x01, 0x10 + command.pairedClientSlot]),
+            command: command
+        )
     }
     
-    func visit(_ command: RequestNickname) async throws {
-        try await writeData(Data([clientSlot, 0x44, 0x00]), clientSecret: clientSecret)
+    func visit(_ command: RequestDeviceInformation) async throws -> DeviceNotification {
+        let manufacturerName: String = try await peripheral.readValue(
+            forCharacteristicWithCBUUID: Characteristic.CHARACTERISTIC_MANUFACTURER_NAME,
+            ofServiceWithCBUUID: Service.SERVICE_DEVICE_INFORMATION
+        ) ?? ""
+        let modelNumber: String = try await peripheral.readValue(
+            forCharacteristicWithCBUUID: Characteristic.CHARACTERISTIC_MODEL_NUMBER,
+            ofServiceWithCBUUID: Service.SERVICE_DEVICE_INFORMATION
+        ) ?? ""
+        let hardwareRevision: Data? = try await peripheral.readValue(
+            forCharacteristicWithCBUUID: Characteristic.CHARACTERISTIC_HARDWARE_REVISION,
+            ofServiceWithCBUUID: Service.SERVICE_DEVICE_INFORMATION
+        )
+        let firmwareRevision: Data? = try await peripheral.readValue<Data>(
+            forCharacteristicWithCBUUID: Characteristic.CHARACTERISTIC_FIRMWARE_REVISION,
+            ofServiceWithCBUUID: Service.SERVICE_DEVICE_INFORMATION
+        )
+        let serialNumber: Data? = try await peripheral.readValue(
+            forCharacteristicWithCBUUID: Characteristic.CHARACTERISTIC_SERIAL_NUMBER,
+            ofServiceWithCBUUID: Service.SERVICE_DEVICE_INFORMATION
+        )
+        
+        return DeviceInformationNotification(
+            deviceId: command.deviceId,
+            manufacturerName: manufacturerName,
+            modelNumber: modelNumber,
+            hardwareRevision: hardwareRevision?.hexDescription ?? "",
+            firmwareRevision: firmwareRevision?.hexDescription ?? "",
+            serialNumber: serialNumber?.hexDescription ?? ""
+        )
     }
     
-    func visit(_ command: UpdateNickname) async throws {
+    func visit(_ command: RequestNickname) async throws -> DeviceNotification {
+        return try await writeData(
+            Data([command.clientSlot, 0x44, 0x00]),
+            command: command
+        )
+    }
+    
+    func visit(_ command: UpdateNickname) async throws -> DeviceNotification {
         let payload = command.nickname.data(using: .utf8)!.withPaddingTo(length: 16)
-        try await writeData(Data([clientSlot, 0xc4, UInt8(payload.count)]) + payload, clientSecret: clientSecret)
+        return try await writeData(
+            Data([command.clientSlot, 0xc4, UInt8(payload.count)]) + payload,
+            command: command
+        )
     }
     
-    func visit(_ command: RequestState) async throws {
-        try await writeData(Data([clientSlot, 0x07, 0x00]), clientSecret: clientSecret)
+    func visit(_ command: RequestState) async throws -> DeviceNotification {
+        return try await writeData(
+            Data([command.clientSlot, 0x07, 0x00]),
+            command: command
+        )
     }
     
-    func visit(_ command: RequestDeviceSettings) async throws {
-        try await writeData(Data([clientSlot, 0x3e, 0x00]), clientSecret: clientSecret)
+    func visit(_ command: RequestDeviceSettings) async throws -> DeviceNotification {
+        return try await writeData(
+            Data([command.clientSlot, 0x3e, 0x00]),
+            command: command
+        )
     }
     
-    func visit(_ command: UpdateDefaultPresetSlot) async throws {
-        try await writeData(Data([clientSlot, 0xbe, 0x02, 0x02, command.presetSlot]), clientSecret: clientSecret)
+    func visit(_ command: UpdateDefaultPresetSlot) async throws -> DeviceNotification {
+        return try await writeData(
+            Data([command.clientSlot, 0xbe, 0x02, 0x02, command.presetSlot]),
+            command: command
+        )
     }
     
-    func visit(_ command: UpdateWirelessRemoteButtonSettings) async throws -> Void {
+    func visit(_ command: UpdateWirelessRemoteButtonSettings) async throws -> DeviceNotification {
         let outlet0: UInt8 = command.outletSlotsEnabled.contains(Outlet.outletSlot0) ? BitMasks.outlet0Enabled : 0x00
         let outlet1: UInt8 = command.outletSlotsEnabled.contains(Outlet.outletSlot1) ? BitMasks.outlet1Enabled : 0x00
-        try await writeData(Data([clientSlot, 0xbe, 0x02, 0x01, outlet0 | outlet1 ]), clientSecret: clientSecret)
+        return try await writeData(
+            Data([command.clientSlot, 0xbe, 0x02, 0x01, outlet0 | outlet1 ]),
+            command: command
+        )
     }
     
-    func visit(_ command: UpdateControllerSettings) async throws -> Void {
+    func visit(_ command: UpdateControllerSettings) async throws -> DeviceNotification {
         let lightingDisabled: UInt8 = command.standbyLightingEnabled ? 0x00 : BitMasks.standbyLightingDisabled
         let topButtonOutletType: UInt8 = command.outletsSwitched ? BitMasks.outletsSwitched : 0x00
-        try await writeData(Data([clientSlot, 0xbe, 0x02, 0x03, lightingDisabled | topButtonOutletType]), clientSecret: clientSecret)
+        return try await writeData(
+            Data([command.clientSlot, 0xbe, 0x02, 0x03, lightingDisabled | topButtonOutletType]),
+            command: command
+        )
     }
 
-    func visit(_ command: RequestPresetSlots) async throws {
-        try await writeData(Data([clientSlot, 0x30, 0x01, 0x80]), clientSecret: clientSecret)
+    func visit(_ command: RequestPresetSlots) async throws -> DeviceNotification {
+        return try await writeData(
+            Data([command.clientSlot, 0x30, 0x01, 0x80]),
+            command: command
+        )
     }
     
-    func visit(_ command: RequestPresetDetails) async throws {
-        try await writeData(Data([clientSlot, 0x30, 0x01, 0x40 + command.presetSlot]), clientSecret: clientSecret)
+    func visit(_ command: RequestPresetDetails) async throws -> DeviceNotification {
+        return try await writeData(
+            Data([command.clientSlot, 0x30, 0x01, 0x40 + command.presetSlot]),
+            command: command
+        )
     }
     
-    func visit(_ command: UpdatePresetDetails) async throws {
+    func visit(_ command: UpdatePresetDetails) async throws -> DeviceNotification {
         // 00 b0 18
         // 00 01 c2 64 84 02 00 00
         // NAME: 57 61 72 6d 20 42 61 74 68 00 00 00 00 00 00 00
         let outletByte = command.outletSlot == Outlet.outletSlot0 ? BitMasks.outlet0Enabled : BitMasks.outlet1Enabled
         let payload = Data(
-            [clientSlot, 0xb0, 0x18, command.presetSlot] +
+            [command.clientSlot, 0xb0, 0x18, command.presetSlot] +
             Converter.celciusToData(command.targetTemperature) +
             [BitMasks.maximumFlowRate, Converter.secondsToData(command.durationSeconds), outletByte, 0x00, 0x00]
         ) + command.name.data(using: .utf8)!.withPaddingTo(length: 16)
         
-        try await writeData(payload, clientSecret: clientSecret)
-    }
-    
-    func visit(_ command: DeletePresetDetails) async throws {
-        let payload = Data([clientSlot, 0xb0, 0x18, command.presetSlot, 0x01 ]) + Data(count: 22)
-        try await writeData(payload, clientSecret: clientSecret)
-    }
-    
-    func visit(_ command: StartPreset) async throws {
-        try await writeData(
-            Data([clientSlot, 0xb1, 0x01, command.presetSlot]),
-            clientSecret: clientSecret
+        return try await writeData(
+            payload,
+            command: command
         )
     }
     
-    func visit(_ command: OperateOutletControls) async throws {
-        try await writeData(
+    func visit(_ command: DeletePresetDetails) async throws -> DeviceNotification {
+        let payload = Data([command.clientSlot, 0xb0, 0x18, command.presetSlot, 0x01 ]) + Data(count: 22)
+        return try await writeData(
+            payload,
+            command: command
+        )
+    }
+    
+    func visit(_ command: StartPreset) async throws -> DeviceNotification {
+        return try await writeData(
+            Data([command.clientSlot, 0xb1, 0x01, command.presetSlot]),
+            command: command
+        )
+    }
+    
+    func visit(_ command: OperateOutletControls) async throws -> DeviceNotification {
+        return try await writeData(
             Data(
-                [clientSlot, 0x87, 0x05, Converter.runningStateToData(command.runningState)] +
+                [command.clientSlot, 0x87, 0x05, Converter.runningStateToData(command.runningState)] +
                 Converter.celciusToData(command.targetTemperature) +
                 [
                     command.outletSlot0Running ? BitMasks.maximumFlowRate : 0x00,
                     command.outletSlot1Running ? BitMasks.maximumFlowRate : 0x00
                 ]
             ),
-            clientSecret: clientSecret
+            command: command
         )
     }
     
-    func visit(_ command: RequestOutletSettings) async throws {
+    func visit(_ command: RequestOutletSettings) async throws -> DeviceNotification {
         let commandType: UInt8 = command.outletSlot == Outlet.outletSlot0 ? 0x0f : 0x10
-        try await writeData(Data([ clientSlot, commandType, 0x00 ]), clientSecret: clientSecret)
+        return try await writeData(
+            Data([ command.clientSlot, commandType, 0x00 ]),
+            command: command
+        )
     }
     
     
-    func visit(_ command: UpdateOutletSettings) async throws {
+    func visit(_ command: UpdateOutletSettings) async throws -> DeviceNotification {
         let commandType: UInt8 = command.outletSlot == Outlet.outletSlot0 ? 0x8f : 0x90
         let outletFlag: UInt8 = command.outletSlot == Outlet.outletSlot0 ? 0x00 : 0x04
         
-        try await writeData(
+        return try await writeData(
             Data(
-                [clientSlot, commandType, 0x0b] +
+                [command.clientSlot, commandType, 0x0b] +
                 [outletFlag, outletFlag, 0x08, BitMasks.maximumFlowRate, Converter.secondsToData(command.maximumDurationSeconds)] +
                 Converter.celciusToData(command.maximumTemperature) +
                 Converter.celciusToData(command.minimumTemperature) +
@@ -176,28 +270,41 @@ extension CommandDispatcher: DeviceCommandVisitor {
                  */
                 Converter.celciusToData(command.thresholdTemperature)
             ),
-            clientSecret: clientSecret
+            command: command
         )
     }
     
-    func visit(_ command: RestartDevice) async throws -> Void {
-        try await writeData(Data([ clientSlot, 0xf4, 0x01, 0x01 ]), clientSecret: clientSecret)
+    func visit(_ command: RestartDevice) async throws -> DeviceNotification {
+        return try await writeData(
+            Data([ command.clientSlot, 0xf4, 0x01, 0x01 ]),
+            command: command
+        )
     }
     
-    func visit(_ command: FactoryResetDevice) async throws -> Void {
-        try await writeData(Data([ clientSlot, 0xf4, 0x01, 0x02 ]), clientSecret: clientSecret)
+    func visit(_ command: FactoryResetDevice) async throws -> DeviceNotification {
+        return try await writeData(
+            Data([ command.clientSlot, 0xf4, 0x01, 0x02 ]),
+            command: command
+        )
     }
     
-    func visit(_ command: RequestTechnicalInformation) async throws -> Void {
-        try await writeData(Data([ clientSlot, 0x32, 0x01, 0x01 ]), clientSecret: clientSecret)
+    func visit(_ command: RequestTechnicalInformation) async throws -> DeviceNotification {
+        return try await writeData(
+            Data([ command.clientSlot, 0x32, 0x01, 0x01 ]),
+            command: command
+        )
     }
     
-    func visit(_ command: UnknownRequestTechnicalInformation) async throws -> Void {
-        try await writeData(Data([ clientSlot, 0x41, 0x00 ]), clientSecret: clientSecret)
+    func visit(_ command: UnknownRequestTechnicalInformation) async throws -> DeviceNotification {
+        return try await writeData(
+            Data([ command.clientSlot, 0x41, 0x00 ]),
+            command: command
+        )
     }
     
-    func visit(_ command: UnknownCommand) async throws -> Void {
-//        try await writeData(Data([ clientSlot, 0x40, 0x00 ]), clientSecret: clientSecret)
-//        try await writeData(Data([ clientSlot, 0x40, 0x01, 0x01 ]), clientSecret: clientSecret)
+    func visit(_ command: UnknownCommand) async throws -> DeviceNotification {
+//        return try await writeData(Data([ command.clientSlot, 0x40, 0x00 ]), command: command)
+//        return try await writeData(Data([ command.clientSlot, 0x40, 0x01, 0x01 ]), command: command)
+        throw DeviceServiceError.internalError
     }
 }

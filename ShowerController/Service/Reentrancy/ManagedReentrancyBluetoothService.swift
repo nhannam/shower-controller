@@ -11,7 +11,7 @@ actor ManagedReentrancyBluetoothService: BluetoothService {
     private static let logger = LoggerFactory.logger(ManagedReentrancyBluetoothService.self)
 
     // channel used to prevent interleaving of bluetooth operations
-    private let executionChannel: AsyncRequestResponseChannel<Void> = AsyncRequestResponseChannel()
+    private let executionChannel: AsyncRequestResponseChannel = AsyncRequestResponseChannel()
     
     private let bluetoothService: BluetoothService
     
@@ -19,25 +19,25 @@ actor ManagedReentrancyBluetoothService: BluetoothService {
         self.bluetoothService = bluetoothService
     }
 
-    private func errorBoundary(@_inheritActorContext _ block: @escaping @Sendable () async throws -> Void) async throws {
+    private func errorBoundary<Response: Sendable>(@_inheritActorContext _ block: @escaping @Sendable () async throws -> Response) async throws -> Response {
         do {
-            try await block()
+            return try await block()
         } catch let error as BluetoothServiceError {
             throw error
-        } catch let cancellationError as CancellationError {
-            Self.logger.warning("Task cancellation trapped by error boundary: \(cancellationError)")
+        } catch is CancellationError {
+            throw BluetoothServiceError.cancelled
         } catch AsyncRequestResponseChannelError.noResponse {
-            Self.logger.debug("No response from AsyncRequestResponseChannel - likely a task was cancelled")
+            throw BluetoothServiceError.cancelled
         } catch {
             Self.logger.debug("Unexpected error: \(error)")
             throw BluetoothServiceError.internalError
         }
     }
 
-    func dispatchCommand(_ command: any DeviceCommand) async throws {
+    func dispatchCommand(_ command: any DeviceCommand) async throws -> any DeviceNotification {
         try await errorBoundary {
             try await self.executionChannel.submit {
-                try await self.bluetoothService.dispatchCommand(command)
+                return try await self.bluetoothService.dispatchCommand(command)
             }
         }
     }
@@ -71,14 +71,6 @@ actor ManagedReentrancyBluetoothService: BluetoothService {
     func stopScan() async throws {
         try await errorBoundary {
             try await self.bluetoothService.stopScan()
-        }
-    }
-    
-    func requestDeviceInformation(_ deviceId: UUID) async throws {
-        try await errorBoundary {
-            try await self.executionChannel.submit {
-                try await self.bluetoothService.requestDeviceInformation(deviceId)
-            }
         }
     }
 }

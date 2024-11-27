@@ -7,17 +7,9 @@
 
 import Foundation
 @preconcurrency import CoreBluetooth
-@preconcurrency import Combine
 import SwiftData
-import AsyncAlgorithms
 import AsyncBluetooth
 
-/*
- TODO: Now that I have a better understanding of the interaction between commands and notifications
- it might be better to refactor this somewhat so that notifications are returned following commands
- and leaving the DeviceService to persist the changes to the Device.
- It should give better separation of logic & bluetooth messaging
-*/
 // @ModelActor creates a single arg init, which prevents us passing the BluetoothService in
 actor AsyncBluetoothService: ModelActor, BluetoothService {
     private static let logger = LoggerFactory.logger(AsyncBluetoothService.self)
@@ -41,59 +33,29 @@ actor AsyncBluetoothService: ModelActor, BluetoothService {
         self.modelContainer = modelContainer
     }
 
-    private func errorBoundary<R: Sendable>(@_inheritActorContext _ block: @escaping @Sendable () async throws -> R?) async throws -> R? {
+    private func errorBoundary<R: Sendable>(@_inheritActorContext _ block: @escaping @Sendable () async throws -> R) async throws -> R {
         do {
             return try await block()
         } catch let error as BluetoothServiceError {
             throw error
         } catch is TimeoutError {
-            throw BluetoothServiceError.operationTimedOut
-        } catch let cancellationError as CancellationError {
-            Self.logger.warning("Task cancellation trapped by error boundary: \(cancellationError)")
+            throw BluetoothServiceError.timedOut
+        } catch is CancellationError {
+            throw BluetoothServiceError.cancelled
         } catch BluetoothError.bluetoothUnavailable(_) {
             throw BluetoothServiceError.bluetoothUnavailable
         } catch BluetoothError.connectingInProgress, BluetoothError.disconnectingInProgress,
                 BluetoothError.cancelledConnectionToPeripheral {
-            throw BluetoothServiceError.cannotConnectToDevice
+            throw BluetoothServiceError.cannotConnectToPeripheral
         } catch BluetoothError.errorConnectingToPeripheral(_) {
-            throw BluetoothServiceError.cannotConnectToDevice
+            throw BluetoothServiceError.cannotConnectToPeripheral
         } catch BluetoothError.characteristicNotFound {
-            throw BluetoothServiceError.cannotMakeDeviceReady
+            throw BluetoothServiceError.cannotMakePeripheralReady
         } catch BluetoothError.operationCancelled {
-            Self.logger.warning("Bluetooth operation cancelled")
+            throw BluetoothServiceError.cancelled
         } catch {
             Self.logger.debug("Unexpected error: \(error)")
             throw BluetoothServiceError.internalError
-        }
-        
-        return nil
-    }
-    
-    private func findDeviceById(_ id: UUID) throws -> Device? {
-        let findById = FetchDescriptor<Device>(
-            predicate: #Predicate { $0.id == id }
-        )
-        return try modelContext.fetch(findById).first
-    }
-    
-    private func getDeviceById(_ id: UUID) throws -> Device {
-        do {
-            if let device = try findDeviceById(id) {
-                return device
-            } else {
-                throw BluetoothServiceError.deviceNotFound
-            }
-        }
-    }
-    
-    private func getClient() throws -> Client {
-        do {
-            let findAll = FetchDescriptor<Client>()
-            if let client = try modelContext.fetch(findAll).first {
-                return client
-            } else {
-                throw BluetoothServiceError.clientNotFound
-            }
         }
     }
     
@@ -116,7 +78,7 @@ actor AsyncBluetoothService: ModelActor, BluetoothService {
     private func makeReady(_ peripheral: Peripheral) async throws {
         try await withTimeout(
             Self.timeoutDuration,
-            error: BluetoothServiceError.cannotMakeDeviceReady
+            error: BluetoothServiceError.cannotMakePeripheralReady
         ) {
             if (peripheral.discoveredServices == nil) {
                 try await peripheral.discoverServices([
@@ -151,84 +113,31 @@ actor AsyncBluetoothService: ModelActor, BluetoothService {
         }
     }
     
-    private func getConnectedPeripheral(_ deviceId: UUID) async throws -> Peripheral? {
-        let peripheral = try await getPeripheral(deviceId)
-        if let peripheral {
+    private func getConnectedPeripheral(_ deviceId: UUID) async throws -> Peripheral {
+        if let peripheral = try await getPeripheral(deviceId) {
             if (peripheral.state != .connected ) {
                 try await withTimeout(
                     Self.timeoutDuration,
-                    error: BluetoothServiceError.cannotConnectToDevice
+                    error: BluetoothServiceError.cannotConnectToPeripheral
                 ) {
                     try await self.central.connect(peripheral)
                 }
-                
             }
             
             try await makeReady(peripheral)
+            return peripheral
+        } else {
+            throw BluetoothServiceError.peripheralNotFound
         }
-        return peripheral
     }
     
-    func dispatchCommand(_ command: DeviceCommand) async throws {
+    func dispatchCommand(_ command: any DeviceCommand) async throws -> any DeviceNotification {
         try await errorBoundary {
             return try await withTimeout(Self.timeoutDuration) { [self] in
-                let device = try getDeviceById(command.deviceId)
-                if let peripheral = try await getConnectedPeripheral(device.id) {
-                    
-                    let dataClientSlot = switch command.self {
-                    case is PairDevice:
-                        UInt8(0x00)
-                    default:
-                        if let pairedClientSlot = device.clientSlot {
-                            pairedClientSlot
-                        } else {
-                            throw BluetoothServiceError.notPaired
-                        }
-                    }
-                    
-                    let notificationData = PublisherAsyncSequence<Data>(
-                        valuesPublisher: await peripheral.characteristicValueUpdatedPublisher
-                            .filter { $0.characteristic.uuid == Characteristic.CHARACTERISTIC_NOTIFICATIONS }
-                            .compactMap(\.value)
-                    )
-                    let notificationParser = NotificationParser()
-                    
-                    let clientSecret = try getClient().secret
-                    let commandDispatcher = CommandDispatcher(peripheral: peripheral, dataClientSlot: dataClientSlot, clientSecret: clientSecret)
-                    
-                    try await withTimeout(
-                        Self.timeoutDuration,
-                        error: BluetoothServiceError.timeoutSendingCommand
-                    ) {
-                        try await command.accept(commandDispatcher)
-                    }
-                    
-                    let dataAccumulator = DataAccumulator(clientSlot: dataClientSlot)
-                    
-                    try await withTimeout(
-                        Self.timeoutDuration,
-                        error: BluetoothServiceError.timeoutWaitingForResponse
-                    ) {
-                        notificationLoop: for await notification in notificationData
-                            .compactMap({ data in await dataAccumulator.accumulate(data) })
-                            .compactMap({ data in
-                                notificationParser.parseNotification(data, command: command)
-                            }) {
-                            if try await command.accept(IsExpectedNotificationTypeVisitor(notification)) {
-                                try await self.dispatchNotification(notification: notification)
-                                break notificationLoop
-                            }
-                        }
-                    }
-                }
+                let peripheral = try await getConnectedPeripheral(command.deviceId)
+                let commandDispatcher = CommandDispatcher(peripheral: peripheral)
+                return try await command.accept(commandDispatcher)
             }
-        }
-    }
-    
-    private func dispatchNotification(notification: DeviceNotification) async throws {
-        try modelContext.transaction {
-            let device = try getDeviceById(notification.deviceId)
-            notification.accept(DeviceNotificatonApplier(device: device, modelContext: modelContext))
         }
     }
     
@@ -271,30 +180,28 @@ actor AsyncBluetoothService: ModelActor, BluetoothService {
             defer {
                 Self.logger.debug("scan finished")
             }
-            
+
+            try await self.ensureCentralReady()
+
             guard await !self.central.isScanning else {
                 throw BluetoothServiceError.alreadyScanning
             }
+
+            try self.modelContext.transaction {
+                try self.modelContext.delete(model: ScanResult.self)
+            }
             
-            try await self.ensureCentralReady()
-            
-            for await scanData in try await self.central
-                .scanForPeripherals(withServices: [Service.SERVICE_MIRA]) {
+            for await scanData in try await self.central.scanForPeripherals(withServices: [Service.SERVICE_MIRA]) {
+                let peripheral = scanData.peripheral
+                Self.logger.debug("Peripheral: \(peripheral.name ?? ""), \(scanData.advertisementData)")
+
                 try self.modelContext.transaction {
-                    let peripheral = scanData.peripheral
-                    Self.logger.debug("Peripheral: \(peripheral.name ?? ""), \(scanData.advertisementData)")
-                    if try self.findDeviceById(peripheral.identifier) == nil {
-                        self.modelContext.insert(
-                            Device(
-                                id: peripheral.identifier,
-                                name: peripheral.name ?? "Unknown",
-                                outlets: [
-                                    Outlet(outletSlot: Outlet.outletSlot0, type: .overhead),
-                                    Outlet(outletSlot: Outlet.outletSlot1, type: .bath)
-                                ]
-                            )
+                    self.modelContext.insert(
+                        ScanResult(
+                            id: peripheral.identifier,
+                            name: peripheral.name ?? "Unknown"
                         )
-                    }
+                    )
                 }
             }
         }
@@ -308,46 +215,6 @@ actor AsyncBluetoothService: ModelActor, BluetoothService {
                     try await self.ensureCentralReady()
                     await self.central.stopScan()
                     Self.logger.debug("stopped scan")
-                }
-            }
-        }
-    }
-    
-    func requestDeviceInformation(_ deviceId: UUID) async throws {
-        try await errorBoundary {
-            return try await withTimeout(Self.timeoutDuration) {
-                if let peripheral = try await self.getConnectedPeripheral(deviceId) {
-                    let manufacturerName: String = try await peripheral.readValue(
-                        forCharacteristicWithCBUUID: Characteristic.CHARACTERISTIC_MANUFACTURER_NAME,
-                        ofServiceWithCBUUID: Service.SERVICE_DEVICE_INFORMATION
-                    ) ?? ""
-                    let modelNumber: String = try await peripheral.readValue(
-                        forCharacteristicWithCBUUID: Characteristic.CHARACTERISTIC_MODEL_NUMBER,
-                        ofServiceWithCBUUID: Service.SERVICE_DEVICE_INFORMATION
-                    ) ?? ""
-                    let hardwareRevision: Data? = try await peripheral.readValue(
-                        forCharacteristicWithCBUUID: Characteristic.CHARACTERISTIC_HARDWARE_REVISION,
-                        ofServiceWithCBUUID: Service.SERVICE_DEVICE_INFORMATION
-                    )
-                    let firmwareRevision: Data? = try await peripheral.readValue<Data>(
-                        forCharacteristicWithCBUUID: Characteristic.CHARACTERISTIC_FIRMWARE_REVISION,
-                        ofServiceWithCBUUID: Service.SERVICE_DEVICE_INFORMATION
-                    )
-                    let serialNumber: Data? = try await peripheral.readValue(
-                        forCharacteristicWithCBUUID: Characteristic.CHARACTERISTIC_SERIAL_NUMBER,
-                        ofServiceWithCBUUID: Service.SERVICE_DEVICE_INFORMATION
-                    )
-                    
-                    try await self.dispatchNotification(
-                        notification: DeviceInformationNotification(
-                            deviceId: deviceId,
-                            manufacturerName: manufacturerName,
-                            modelNumber: modelNumber,
-                            hardwareRevision: hardwareRevision?.hexDescription ?? "",
-                            firmwareRevision: firmwareRevision?.hexDescription ?? "",
-                            serialNumber: serialNumber?.hexDescription ?? ""
-                        )
-                    )
                 }
             }
         }
