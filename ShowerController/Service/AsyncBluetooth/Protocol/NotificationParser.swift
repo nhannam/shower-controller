@@ -38,7 +38,7 @@ final class NotificationParser: Sendable {
     func parseNotification(_ data: Data) -> DeviceNotification? {
         // [ 40+deviceSlot, notificationType, dataLength, ...data ]
         // data can continue in subsequent notifications - use length to determine end
-        let clientSlot = data[0] - 0x40
+        // let clientSlot = data[0] - ProtocolConstants.notificationClientSlotBase
         // What's data[1]?  Looks to be 0x01 - maybe a success indicator?
         let payloadLength = data[2]
         let payload = Data(data.dropFirst(3))
@@ -89,14 +89,12 @@ final class NotificationParser: Sendable {
                 notificationType = "PresetSlots"
                 notification = PresetSlotsNotification(
                     deviceId: command.deviceId,
-                    clientSlot: clientSlot,
                     presetSlots: bitsSet(data: payload)
                 )
             case is RequestPairedClientSlots:
                 notificationType = "ClientSlots"
                 notification = PairedClientSlotsNotification(
                     deviceId: command.deviceId,
-                    clientSlot: clientSlot,
                     pairedClientSlots: bitsSet(data: payload)
                 )
             default:
@@ -110,18 +108,17 @@ final class NotificationParser: Sendable {
                 notificationType = "DeviceSettings"
 
                 var wirelessRemoteButtonOutletSlotsEnabled: [Int] = []
-                if (payload[1] & BitMasks.outlet0Enabled == BitMasks.outlet0Enabled) {
+                if (payload[1] & ProtocolConstants.outlet0EnabledBitMask == ProtocolConstants.outlet0EnabledBitMask) {
                     wirelessRemoteButtonOutletSlotsEnabled.append(Outlet.outletSlot0)
                 }
-                if (payload[1] & BitMasks.outlet1Enabled == BitMasks.outlet1Enabled) {
+                if (payload[1] & ProtocolConstants.outlet1EnabledBitMask == ProtocolConstants.outlet1EnabledBitMask) {
                     wirelessRemoteButtonOutletSlotsEnabled.append(Outlet.outletSlot0)
                 }
 
-                let standbyLightingEnabled = (payload[3] & BitMasks.standbyLightingDisabled) != BitMasks.standbyLightingDisabled
-                let outletsSwitched = (payload[3] & BitMasks.outletsSwitched) == BitMasks.outletsSwitched
+                let standbyLightingEnabled = (payload[3] & ProtocolConstants.standbyLightingDisabledBitMask) != ProtocolConstants.standbyLightingDisabledBitMask
+                let outletsSwitched = (payload[3] & ProtocolConstants.outletsSwitchedBitMask) == ProtocolConstants.outletsSwitchedBitMask
                 notification = DeviceSettingsNotification(
                     deviceId: command.deviceId,
-                    clientSlot: clientSlot,
                     defaultPresetSlot: payload[2],
                     standbyLightingEnabled: standbyLightingEnabled,
                     outletsSwitched: outletsSwitched,
@@ -146,11 +143,10 @@ final class NotificationParser: Sendable {
                 notificationType = "DeviceState"
                 notification = DeviceStateNotification(
                     deviceId: command.deviceId,
-                    clientSlot: clientSlot,
                     targetTemperature: Converter.celciusFromData(payload.subdata(in: 1..<3)),
                     actualTemperature: Converter.celciusFromData(payload.subdata(in: 3..<5)),
-                    outletSlot0IsRunning: payload[5] == BitMasks.maximumFlowRate,
-                    outletSlot1IsRunning: payload[6] == BitMasks.maximumFlowRate,
+                    outletSlot0IsRunning: payload[5] != ProtocolConstants.flowRateOff,
+                    outletSlot1IsRunning: payload[6] != ProtocolConstants.flowRateOff,
                     secondsRemaining: Converter.secondsFromData(payload.subdata(in: 7..<9)),
                     runningState: Converter.runningStateFromData(payload[0])
                     // payload[9] this seems to be a counter of sucessfull operations that loops from 0x09 through 0x0f
@@ -168,12 +164,11 @@ final class NotificationParser: Sendable {
                 notificationType = "ControlsOperated"
                 notification = ControlsOperatedNotification(
                     deviceId: command.deviceId,
-                    clientSlot: clientSlot,
                     selectedTemperature: (command as? OperateOutletControls)?.targetTemperature,
                     targetTemperature: Converter.celciusFromData(payload.subdata(in: 2..<4)),
                     actualTemperature: Converter.celciusFromData(payload.subdata(in: 4..<6)),
-                    outletSlot0IsRunning: payload[6] != 0x00,
-                    outletSlot1IsRunning: payload[7] != 0x00,
+                    outletSlot0IsRunning: payload[6] != ProtocolConstants.flowRateOff,
+                    outletSlot1IsRunning: payload[7] != ProtocolConstants.flowRateOff,
                     secondsRemaining: Converter.secondsFromData(payload.subdata(in: 8..<10)),
                     runningState: Converter.runningStateFromData(payload[1])
                     // payload[10] this seems to be a counter of sucessfull operations that loops from 0x09 through 0x0f
@@ -189,7 +184,6 @@ final class NotificationParser: Sendable {
                 notificationType = "OutletSettings"
                 notification = OutletSettingsNotification(
                     deviceId: command.deviceId,
-                    clientSlot: clientSlot,
                     outletSlot: outletSettingsCommand.outletSlot,
                     maximumDurationSeconds: Converter.secondsFromData(payload[4]),
                     maximumTemperature: Converter.celciusFromData(payload.subdata(in: 5..<7)),
@@ -210,14 +204,12 @@ final class NotificationParser: Sendable {
                 let nickname = String(data: payload.prefix(while: { $0 != 0x00 }), encoding: .utf8)
                 notification = DeviceNicknameNotification(
                     deviceId: command.deviceId,
-                    clientSlot: clientSlot,
                     nickname: nickname?.isEmpty ?? true ? nil : nickname
                 )
             case is RequestTechnicalInformation:
                 notificationType = "TechnicalInformation"
                 notification = TechnicalInformationNotification(
                     deviceId: command.deviceId,
-                    clientSlot: clientSlot,
                     // payload[0] = 0x00
                     valveType: payload[1],
                     // payload[2] = 0x00,
@@ -251,8 +243,7 @@ final class NotificationParser: Sendable {
                 // Sometimes, a lack of client is indicated by all 0x00 name
                 notification = PairedClientDetailsNotification(
                     deviceId: command.deviceId,
-                    clientSlot: clientSlot,
-                    pairedClientSlot: requestPairedClientCommand.clientSlot,
+                    pairedClientSlot: requestPairedClientCommand.pairedClientSlot,
                     name: nameReceived.isEmpty ? nil : nameReceived
                 )
             default:
@@ -268,14 +259,13 @@ final class NotificationParser: Sendable {
                 notificationType = "PresetDetails"
                 notification = PresetDetailsNotification(
                     deviceId: command.deviceId,
-                    clientSlot: clientSlot,
                     presetSlot: payload[0],
                     // The bytes in this payload match the ones in the UpdatePresetDetails command
                     // payload[3] - seems to always be 0x64.  suspect it's flow rate
                     // payload[6] - 00
                     // payload[7] - 00
                     name: String(data: payload.dropFirst(8).prefix(while: { $0 != 0x00 }), encoding: .utf8) ?? "",
-                    outletSlot: (payload[5] & BitMasks.outlet0Enabled) == BitMasks.outlet0Enabled ? Outlet.outletSlot0 : Outlet.outletSlot1,
+                    outletSlot: (payload[5] & ProtocolConstants.outlet0EnabledBitMask) == ProtocolConstants.outlet0EnabledBitMask ? Outlet.outletSlot0 : Outlet.outletSlot1,
                     targetTemperature: Converter.celciusFromData(payload.subdata(in: 1..<3)),
                     durationSeconds: Converter.secondsFromData(payload[4])
                 )

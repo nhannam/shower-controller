@@ -82,12 +82,11 @@ actor DeviceService: ModelActor {
     private func getPairedDevice(_ id: UUID) async throws -> (Device, Client) {
         let device = try getDeviceById(id)
         let client = try getClient()
-        
         return (device, client)
     }
     
     private func executeCommand(_ command: DeviceCommand) async throws {
-        let notification = try await bluetoothService.dispatchCommand(command)
+        let notification = try await bluetoothService.executeCommand(command)
 
         switch notification {
         case is FailedNotification:
@@ -462,7 +461,11 @@ actor DeviceService: ModelActor {
         try await errorBoundary {
             let client = try getClient()
             try await executeCommand(
-                PairDevice(deviceId: deviceId, clientSlot: 0x00, clientSecret: PairingSecret.pairingClientSecret, clientName: client.name)
+                PairDevice(
+                    deviceId: deviceId,
+                    clientSecret: client.secret,
+                    clientName: client.name
+                )
             )
         }
         try await bluetoothService.disconnect(deviceId)

@@ -24,7 +24,7 @@ actor DataAccumulator {
             accumulatedData.append(data)
             self.accumulatedData = accumulatedData
         } else {
-            guard data.starts(with: [ 0x40+clientSlot, 0x01 ]) else {
+            guard data.starts(with: [ ProtocolConstants.notificationClientSlotBase + clientSlot, 0x01 ]) else {
                 Self.logger.warning("Unexpected data at start of notification: \(data.hexDescription)")
                 return nil
             }

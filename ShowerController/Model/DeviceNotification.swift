@@ -65,7 +65,6 @@ struct UnpairSuccessNotification: DeviceNotification {
 
 struct PresetSlotsNotification: DeviceNotification {
     let deviceId: UUID
-    let clientSlot: UInt8
     let presetSlots: [UInt8]
     
     func accept(_ visitor: any DeviceNotificationVisitor) {
@@ -88,7 +87,6 @@ struct DeviceInformationNotification: DeviceNotification {
 
 struct DeviceSettingsNotification: DeviceNotification {
     let deviceId: UUID
-    let clientSlot: UInt8
     let defaultPresetSlot: UInt8
     let standbyLightingEnabled: Bool
     let outletsSwitched: Bool
@@ -101,7 +99,6 @@ struct DeviceSettingsNotification: DeviceNotification {
 
 struct DeviceStateNotification: DeviceNotification {
     let deviceId: UUID
-    let clientSlot: UInt8
     let targetTemperature: Double
     let actualTemperature: Double
     let outletSlot0IsRunning: Bool
@@ -116,7 +113,6 @@ struct DeviceStateNotification: DeviceNotification {
 
 struct ControlsOperatedNotification: DeviceNotification {
     let deviceId: UUID
-    let clientSlot: UInt8
     let selectedTemperature: Double?
     let targetTemperature: Double
     let actualTemperature: Double
@@ -132,7 +128,6 @@ struct ControlsOperatedNotification: DeviceNotification {
 
 struct OutletSettingsNotification: DeviceNotification, OutletNotification {
     let deviceId: UUID
-    let clientSlot: UInt8
     let outletSlot: Int
     let maximumDurationSeconds: Int
     let maximumTemperature: Double
@@ -150,7 +145,6 @@ struct OutletSettingsNotification: DeviceNotification, OutletNotification {
 
 struct DeviceNicknameNotification: DeviceNotification {
     let deviceId: UUID
-    let clientSlot: UInt8
     let nickname: String?
 
     func accept(_ visitor: any DeviceNotificationVisitor) {
@@ -161,7 +155,6 @@ struct DeviceNicknameNotification: DeviceNotification {
 
 struct PresetDetailsNotification: DeviceNotification, PresetNotification {
     let deviceId: UUID
-    let clientSlot: UInt8
     let presetSlot: UInt8
     let name: String
     let outletSlot: Int
@@ -179,7 +172,6 @@ struct PresetDetailsNotification: DeviceNotification, PresetNotification {
 
 struct PairedClientSlotsNotification: DeviceNotification {
     let deviceId: UUID
-    let clientSlot: UInt8
     let pairedClientSlots: [UInt8]
     
     func accept(_ visitor: any DeviceNotificationVisitor) {
@@ -189,7 +181,6 @@ struct PairedClientSlotsNotification: DeviceNotification {
 
 struct PairedClientDetailsNotification: DeviceNotification, ClientNotification {
     let deviceId: UUID
-    let clientSlot: UInt8
     let pairedClientSlot: UInt8
     let name: String?
     
@@ -204,7 +195,6 @@ struct PairedClientDetailsNotification: DeviceNotification, ClientNotification {
 
 struct TechnicalInformationNotification: DeviceNotification {
     let deviceId: UUID
-    let clientSlot: UInt8
     let valveType: UInt8
     let valveSoftwareVersion: UInt8
     let uiType: UInt8

@@ -1,5 +1,5 @@
 //
-//  CommandDispatcher.swift
+//  CommandExecutor.swift
 //  ShowerController
 //
 //  Created by Nigel Hannam on 27/10/2024.
@@ -9,8 +9,8 @@ import Foundation
 import AsyncBluetooth
 @preconcurrency import Combine
 
-actor CommandDispatcher {
-    private static let logger = LoggerFactory.logger(CommandDispatcher.self)
+actor CommandExecutor {
+    private static let logger = LoggerFactory.logger(CommandExecutor.self)
 
     let peripheral: Peripheral
     
@@ -19,59 +19,63 @@ actor CommandDispatcher {
     }
 }
 
-extension CommandDispatcher: DeviceCommandVisitor {
+extension CommandExecutor: DeviceCommandVisitor {
     typealias Response = DeviceNotification
     
     private func writeData(payloadWithCrc: Data) async throws {
         var startIndex = 0
+        
         let totalBytes = payloadWithCrc.count
         while (startIndex < totalBytes) {
-            let chunk = payloadWithCrc.subdata(in: startIndex..<(min(startIndex+20, totalBytes)))
+            let chunk = payloadWithCrc.subdata(in: startIndex..<(min(startIndex + ProtocolConstants.writeChunkLength, totalBytes)))
             try await peripheral.writeValue(
                 chunk,
                 forCharacteristicWithCBUUID: Characteristic.CHARACTERISTIC_WRITE,
                 ofServiceWithCBUUID: Service.SERVICE_MIRA,
                 type: .withResponse
             )
-            startIndex += 20
+            startIndex += ProtocolConstants.writeChunkLength
         }
         Self.logger.debug("Written: \(payloadWithCrc.hexDescription)")
     }
-    
-    private func writeData(_ payload: Data, command: DeviceCommand) async throws -> DeviceNotification {
+
+    private func writeData(_ payload: Data, command: DeviceCommand, clientSlot: UInt8, clientSecret: Data) async throws -> DeviceNotification {
         let notificationData = PublisherAsyncSequence<Data>(
             valuesPublisher: await peripheral.characteristicValueUpdatedPublisher
                 .filter { $0.characteristic.uuid == Characteristic.CHARACTERISTIC_NOTIFICATIONS }
                 .compactMap(\.value)
         )
         
-        let payloadWithCrc = payload.withCrc(clientSecret: command.clientSecret)
+        let payloadWithCrc = payload.withCrc(clientSecret: clientSecret)
         try await writeData(payloadWithCrc: payloadWithCrc)
         
         let notificationParser = NotificationParser(peripheral: peripheral, command: command)
-        let dataAccumulator = DataAccumulator(clientSlot: command.clientSlot)
-        notificationLoop: for await notification in notificationData
-            .compactMap({ data in await dataAccumulator.accumulate(data) })
-            .compactMap({ data in
-                notificationParser.parseNotification(data)
-            }) {
-//            if try await command.accept(IsExpectedNotificationTypeVisitor(notification)) {
-                return notification
-//            }
+        let dataAccumulator = DataAccumulator(clientSlot: clientSlot)
+        for await notification in notificationData
+            .compactMap({ data in return await dataAccumulator.accumulate(data) })
+            .compactMap({ data in return notificationParser.parseNotification(data) }) {
+            return notification
         }
         
         throw BluetoothServiceError.notificationNotReceived
     }
     
+    private func writeData<Command: PairedDeviceCommand>(_ payload: Data, command: Command) async throws -> DeviceNotification {
+        return try await writeData(payload, command: command, clientSlot: command.clientSlot, clientSecret: command.clientSecret)
+    }
+
     func visit(_ command: PairDevice) async throws -> DeviceNotification {
         let name = command.clientName.data(using: .utf8)!.withPaddingTo(length: 20)
         let payload = Data(command.clientSecret + name)
         
-        let data = Data([command.clientSlot, 0xeb, UInt8(payload.count)] + payload)
+        let pairingClientSlot = AsyncBluetoothService.pairingClientSlot
+        let data = Data([pairingClientSlot, 0xeb, UInt8(payload.count)] + payload)
         
         return try await writeData(
             data,
-            command: command
+            command: command,
+            clientSlot: pairingClientSlot,
+            clientSecret: PairingSecret.pairingClientSecret
         )
     }
     
@@ -165,8 +169,8 @@ extension CommandDispatcher: DeviceCommandVisitor {
     }
     
     func visit(_ command: UpdateWirelessRemoteButtonSettings) async throws -> DeviceNotification {
-        let outlet0: UInt8 = command.outletSlotsEnabled.contains(Outlet.outletSlot0) ? BitMasks.outlet0Enabled : 0x00
-        let outlet1: UInt8 = command.outletSlotsEnabled.contains(Outlet.outletSlot1) ? BitMasks.outlet1Enabled : 0x00
+        let outlet0: UInt8 = command.outletSlotsEnabled.contains(Outlet.outletSlot0) ? ProtocolConstants.outlet0EnabledBitMask : 0x00
+        let outlet1: UInt8 = command.outletSlotsEnabled.contains(Outlet.outletSlot1) ? ProtocolConstants.outlet1EnabledBitMask : 0x00
         return try await writeData(
             Data([command.clientSlot, 0xbe, 0x02, 0x01, outlet0 | outlet1 ]),
             command: command
@@ -174,8 +178,8 @@ extension CommandDispatcher: DeviceCommandVisitor {
     }
     
     func visit(_ command: UpdateControllerSettings) async throws -> DeviceNotification {
-        let lightingDisabled: UInt8 = command.standbyLightingEnabled ? 0x00 : BitMasks.standbyLightingDisabled
-        let topButtonOutletType: UInt8 = command.outletsSwitched ? BitMasks.outletsSwitched : 0x00
+        let lightingDisabled: UInt8 = command.standbyLightingEnabled ? 0x00 : ProtocolConstants.standbyLightingDisabledBitMask
+        let topButtonOutletType: UInt8 = command.outletsSwitched ? ProtocolConstants.outletsSwitchedBitMask : 0x00
         return try await writeData(
             Data([command.clientSlot, 0xbe, 0x02, 0x03, lightingDisabled | topButtonOutletType]),
             command: command
@@ -200,11 +204,11 @@ extension CommandDispatcher: DeviceCommandVisitor {
         // 00 b0 18
         // 00 01 c2 64 84 02 00 00
         // NAME: 57 61 72 6d 20 42 61 74 68 00 00 00 00 00 00 00
-        let outletByte = command.outletSlot == Outlet.outletSlot0 ? BitMasks.outlet0Enabled : BitMasks.outlet1Enabled
+        let outletByte = command.outletSlot == Outlet.outletSlot0 ? ProtocolConstants.outlet0EnabledBitMask : ProtocolConstants.outlet1EnabledBitMask
         let payload = Data(
             [command.clientSlot, 0xb0, 0x18, command.presetSlot] +
             Converter.celciusToData(command.targetTemperature) +
-            [BitMasks.maximumFlowRate, Converter.secondsToData(command.durationSeconds), outletByte, 0x00, 0x00]
+            [ProtocolConstants.flowRateMaximum, Converter.secondsToData(command.durationSeconds), outletByte, 0x00, 0x00]
         ) + command.name.data(using: .utf8)!.withPaddingTo(length: 16)
         
         return try await writeData(
@@ -234,8 +238,8 @@ extension CommandDispatcher: DeviceCommandVisitor {
                 [command.clientSlot, 0x87, 0x05, Converter.runningStateToData(command.runningState)] +
                 Converter.celciusToData(command.targetTemperature) +
                 [
-                    command.outletSlot0Running ? BitMasks.maximumFlowRate : 0x00,
-                    command.outletSlot1Running ? BitMasks.maximumFlowRate : 0x00
+                    command.outletSlot0Running ? ProtocolConstants.flowRateMaximum : 0x00,
+                    command.outletSlot1Running ? ProtocolConstants.flowRateMaximum : 0x00
                 ]
             ),
             command: command
@@ -258,7 +262,7 @@ extension CommandDispatcher: DeviceCommandVisitor {
         return try await writeData(
             Data(
                 [command.clientSlot, commandType, 0x0b] +
-                [outletFlag, outletFlag, 0x08, BitMasks.maximumFlowRate, Converter.secondsToData(command.maximumDurationSeconds)] +
+                [outletFlag, outletFlag, 0x08, ProtocolConstants.flowRateMaximum, Converter.secondsToData(command.maximumDurationSeconds)] +
                 Converter.celciusToData(command.maximumTemperature) +
                 Converter.celciusToData(command.minimumTemperature) +
                 /*

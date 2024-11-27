@@ -28,33 +28,18 @@ class Converter {
         return UInt8(seconds / Device.durationSecondsSelectionSteps).bigEndian
     }
     
+    private static let runningStateMappings: [UInt8: RunningState] = [
+        0x05: .cold,
+        0x03: .paused,
+        0x01: .running,
+        0x00: .off
+    ]
+    
     static func runningStateFromData(_ data: UInt8) -> RunningState {
-        switch data {
-        case 0x05:
-            return .cold
-        case 0x03:
-            return .paused
-        case 0x01:
-            return .running
-        case 0x00:
-            return .off
-        default:
-            // This shouldn't happen
-            return .off
-        }
+        return runningStateMappings[data] ?? .off
     }
     
     static func runningStateToData(_ runningState: RunningState) -> UInt8 {
-        switch runningState {
-        case .cold:
-            return 0x05
-        case .paused:
-            return 0x03
-        case .running:
-            return 0x01
-        case .off:
-            return 0x00
-        }
+        runningStateMappings.first(where: { data, state in runningState == state})?.key ?? 0x00
     }
-
 }

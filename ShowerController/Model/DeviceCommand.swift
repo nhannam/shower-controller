@@ -9,22 +9,24 @@ import Foundation
 
 protocol DeviceCommand: Sendable {
     var deviceId: UUID { get }
-    var clientSlot: UInt8 { get }
-    var clientSecret: Data { get }
     func accept<V: DeviceCommandVisitor>(_ visitor: V) async throws -> V.Response
 }
 
-protocol PresetCommand: DeviceCommand {
+protocol PairedDeviceCommand: DeviceCommand {
+    var clientSlot: UInt8 { get }
+    var clientSecret: Data { get }
+}
+
+protocol PresetCommand: PairedDeviceCommand {
     var presetSlot: UInt8 { get }
 }
 
-protocol PairedClientCommand: DeviceCommand {
+protocol PairedClientCommand: PairedDeviceCommand {
     var pairedClientSlot: UInt8 { get }
 }
 
 struct PairDevice: DeviceCommand {
     let deviceId: UUID
-    var clientSlot: UInt8
     var clientSecret: Data
     let clientName: String
     
@@ -33,7 +35,7 @@ struct PairDevice: DeviceCommand {
     }
 }
 
-struct RequestDeviceInformation: DeviceCommand {
+struct RequestDeviceInformation: PairedDeviceCommand {
     let deviceId: UUID
     var clientSlot: UInt8
     var clientSecret: Data
@@ -43,7 +45,7 @@ struct RequestDeviceInformation: DeviceCommand {
     }
 }
 
-struct RequestNickname: DeviceCommand {
+struct RequestNickname: PairedDeviceCommand {
     let deviceId: UUID
     var clientSlot: UInt8
     var clientSecret: Data
@@ -53,7 +55,7 @@ struct RequestNickname: DeviceCommand {
     }
 }
 
-struct UpdateNickname: DeviceCommand {
+struct UpdateNickname: PairedDeviceCommand {
     let deviceId: UUID
     var clientSlot: UInt8
     var clientSecret: Data
@@ -64,7 +66,7 @@ struct UpdateNickname: DeviceCommand {
     }
 }
 
-struct RequestState: DeviceCommand {
+struct RequestState: PairedDeviceCommand {
     let deviceId: UUID
     var clientSlot: UInt8
     var clientSecret: Data
@@ -74,7 +76,7 @@ struct RequestState: DeviceCommand {
     }
 }
 
-struct RequestDeviceSettings: DeviceCommand{
+struct RequestDeviceSettings: PairedDeviceCommand{
     let deviceId: UUID
     var clientSlot: UInt8
     var clientSecret: Data
@@ -95,7 +97,7 @@ struct UpdateDefaultPresetSlot: PresetCommand {
     }
 }
 
-struct RequestPresetSlots: DeviceCommand {
+struct RequestPresetSlots: PairedDeviceCommand {
     let deviceId: UUID
     var clientSlot: UInt8
     var clientSecret: Data
@@ -105,7 +107,7 @@ struct RequestPresetSlots: DeviceCommand {
     }
 }
 
-struct UpdateControllerSettings: DeviceCommand {
+struct UpdateControllerSettings: PairedDeviceCommand {
     let deviceId: UUID
     var clientSlot: UInt8
     var clientSecret: Data
@@ -117,7 +119,7 @@ struct UpdateControllerSettings: DeviceCommand {
     }
 }
 
-struct UpdateOutletSettings: DeviceCommand {
+struct UpdateOutletSettings: PairedDeviceCommand {
     let deviceId: UUID
     var clientSlot: UInt8
     var clientSecret: Data
@@ -132,7 +134,7 @@ struct UpdateOutletSettings: DeviceCommand {
     }
 }
 
-struct RequestOutletSettings: DeviceCommand {
+struct RequestOutletSettings: PairedDeviceCommand {
     let deviceId: UUID
     var clientSlot: UInt8
     var clientSecret: Data
@@ -143,7 +145,7 @@ struct RequestOutletSettings: DeviceCommand {
     }
 }
 
-struct UpdateWirelessRemoteButtonSettings: DeviceCommand {
+struct UpdateWirelessRemoteButtonSettings: PairedDeviceCommand {
     let deviceId: UUID
     var clientSlot: UInt8
     var clientSecret: Data
@@ -154,7 +156,7 @@ struct UpdateWirelessRemoteButtonSettings: DeviceCommand {
     }
 }
 
-struct OperateOutletControls: DeviceCommand {
+struct OperateOutletControls: PairedDeviceCommand {
     let deviceId: UUID
     var clientSlot: UInt8
     var clientSecret: Data
@@ -227,7 +229,7 @@ struct UnpairDevice: PairedClientCommand {
     }
 }
 
-struct RequestPairedClientSlots: DeviceCommand {
+struct RequestPairedClientSlots: PairedDeviceCommand {
     let deviceId: UUID
     var clientSlot: UInt8
     var clientSecret: Data
@@ -248,7 +250,7 @@ struct RequestPairedClientDetails: PairedClientCommand {
     }
 }
 
-struct RestartDevice: DeviceCommand {
+struct RestartDevice: PairedDeviceCommand {
     let deviceId: UUID
     var clientSlot: UInt8
     var clientSecret: Data
@@ -258,7 +260,7 @@ struct RestartDevice: DeviceCommand {
     }
 }
 
-struct FactoryResetDevice: DeviceCommand {
+struct FactoryResetDevice: PairedDeviceCommand {
     let deviceId: UUID
     var clientSlot: UInt8
     var clientSecret: Data
@@ -268,7 +270,7 @@ struct FactoryResetDevice: DeviceCommand {
     }
 }
 
-struct RequestTechnicalInformation: DeviceCommand {
+struct RequestTechnicalInformation: PairedDeviceCommand {
     let deviceId: UUID
     var clientSlot: UInt8
     var clientSecret: Data
@@ -278,7 +280,7 @@ struct RequestTechnicalInformation: DeviceCommand {
     }
 }
 
-struct UnknownRequestTechnicalInformation: DeviceCommand {
+struct UnknownRequestTechnicalInformation: PairedDeviceCommand {
     let deviceId: UUID
     var clientSlot: UInt8
     var clientSecret: Data
@@ -288,7 +290,7 @@ struct UnknownRequestTechnicalInformation: DeviceCommand {
     }
 }
 
-struct UnknownCommand: DeviceCommand {
+struct UnknownCommand: PairedDeviceCommand {
     let deviceId: UUID
     var clientSlot: UInt8
     var clientSecret: Data

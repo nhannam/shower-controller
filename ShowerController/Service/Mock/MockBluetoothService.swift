@@ -28,7 +28,7 @@ actor MockBluetoothService: ModelActor, BluetoothService {
         self.modelContainer = modelContainer
     }
     
-    func dispatchCommand(_ command: any DeviceCommand) async throws -> any DeviceNotification {
+    func executeCommand(_ command: any DeviceCommand) async throws -> any DeviceNotification {
         if command is PairDevice {
             return PairSuccessNotification(deviceId: command.deviceId, clientSlot: 1, name: Self.device1Name)
         }
@@ -130,18 +130,15 @@ actor MockDeviceActor: SwiftData.ModelActor, DeviceCommandVisitor {
             try applyToMockDevice(
                 PairedClientSlotsNotification(
                     deviceId: mockDevice.id,
-                    clientSlot: mockDevice.clientSlot,
                     pairedClientSlots: [ 0, 1 ]
                 ),
                 PairedClientDetailsNotification(
                     deviceId: mockDevice.id,
-                    clientSlot: mockDevice.clientSlot,
                     pairedClientSlot: 0,
                     name: "Paired Client 0"
                 ),
                 PairedClientDetailsNotification(
                     deviceId: mockDevice.id,
-                    clientSlot: mockDevice.clientSlot,
                     pairedClientSlot: 1,
                     name: "Paired Client 1"
                 )
@@ -150,7 +147,6 @@ actor MockDeviceActor: SwiftData.ModelActor, DeviceCommandVisitor {
         
         return PairedClientSlotsNotification(
             deviceId: mockDevice.id,
-            clientSlot: mockDevice.clientSlot,
             pairedClientSlots: mockDevice.pairedClients.map(\.clientSlot)
         )
     }
@@ -158,7 +154,6 @@ actor MockDeviceActor: SwiftData.ModelActor, DeviceCommandVisitor {
     func visit(_ command: RequestPairedClientDetails) async throws -> Response {
         return PairedClientDetailsNotification(
             deviceId: mockDevice.id,
-            clientSlot: mockDevice.clientSlot,
             pairedClientSlot: command.pairedClientSlot,
             name: mockDevice.pairedClients.first(where: { $0.clientSlot == command.pairedClientSlot})?.name
         )
@@ -178,7 +173,6 @@ actor MockDeviceActor: SwiftData.ModelActor, DeviceCommandVisitor {
     func visit(_ command: RequestNickname) async throws -> Response {
         return DeviceNicknameNotification(
             deviceId: mockDevice.id,
-            clientSlot: mockDevice.clientSlot,
             nickname: mockDevice.nickname
         )
     }
@@ -187,7 +181,6 @@ actor MockDeviceActor: SwiftData.ModelActor, DeviceCommandVisitor {
         try applyToMockDevice(
             DeviceNicknameNotification(
                 deviceId: mockDevice.id,
-                clientSlot: mockDevice.clientSlot,
                 nickname: command.nickname
             )
         )
@@ -217,7 +210,6 @@ actor MockDeviceActor: SwiftData.ModelActor, DeviceCommandVisitor {
 
         return DeviceStateNotification(
             deviceId: mockDevice.id,
-            clientSlot: mockDevice.clientSlot,
             targetTemperature: mockDevice.targetTemperature,
             actualTemperature: mockDevice.actualTemperature,
             outletSlot0IsRunning: newRunningState == .running ? mockDevice.isOutletRunning(outletSlot: Outlet.outletSlot0) : false,
@@ -230,7 +222,6 @@ actor MockDeviceActor: SwiftData.ModelActor, DeviceCommandVisitor {
     func visit(_ command: RequestDeviceSettings) async throws -> Response {
         return DeviceSettingsNotification(
             deviceId: mockDevice.id,
-            clientSlot: mockDevice.clientSlot,
             defaultPresetSlot: mockDevice.defaultPresetSlot ?? 0,
             standbyLightingEnabled: mockDevice.standbyLightingEnabled,
             outletsSwitched: mockDevice.outletsSwitched,
@@ -242,7 +233,6 @@ actor MockDeviceActor: SwiftData.ModelActor, DeviceCommandVisitor {
         try applyToMockDevice(
             DeviceSettingsNotification(
                 deviceId: mockDevice.id,
-                clientSlot: mockDevice.clientSlot,
                 defaultPresetSlot: command.presetSlot,
                 standbyLightingEnabled: mockDevice.standbyLightingEnabled,
                 outletsSwitched: mockDevice.outletsSwitched,
@@ -256,7 +246,6 @@ actor MockDeviceActor: SwiftData.ModelActor, DeviceCommandVisitor {
         try applyToMockDevice(
             DeviceSettingsNotification(
                 deviceId: mockDevice.id,
-                clientSlot: mockDevice.clientSlot,
                 defaultPresetSlot: mockDevice.defaultPresetSlot ?? 0,
                 standbyLightingEnabled: command.standbyLightingEnabled,
                 outletsSwitched: command.outletsSwitched,
@@ -271,12 +260,10 @@ actor MockDeviceActor: SwiftData.ModelActor, DeviceCommandVisitor {
             try applyToMockDevice(
                 PresetSlotsNotification(
                     deviceId: mockDevice.id,
-                    clientSlot: mockDevice.clientSlot,
                     presetSlots: [ 0, 1 ]
                 ),
                 PresetDetailsNotification(
                     deviceId: mockDevice.id,
-                    clientSlot: mockDevice.clientSlot,
                     presetSlot: 0,
                     name: "Warm Bath",
                     outletSlot: Outlet.outletSlot1,
@@ -285,7 +272,6 @@ actor MockDeviceActor: SwiftData.ModelActor, DeviceCommandVisitor {
                 ),
                 PresetDetailsNotification(
                     deviceId: mockDevice.id,
-                    clientSlot: mockDevice.clientSlot,
                     presetSlot: 1,
                     name: "Short Run",
                     outletSlot: Outlet.outletSlot1,
@@ -294,7 +280,6 @@ actor MockDeviceActor: SwiftData.ModelActor, DeviceCommandVisitor {
                 ),
                 DeviceSettingsNotification(
                     deviceId: mockDevice.id,
-                    clientSlot: mockDevice.clientSlot,
                     defaultPresetSlot: 0,
                     standbyLightingEnabled: true,
                     outletsSwitched: false,
@@ -305,7 +290,6 @@ actor MockDeviceActor: SwiftData.ModelActor, DeviceCommandVisitor {
 
         return PresetSlotsNotification(
             deviceId: mockDevice.id,
-            clientSlot: mockDevice.clientSlot,
             presetSlots: mockDevice.presets.map(\.presetSlot)
         )
     }
@@ -314,7 +298,6 @@ actor MockDeviceActor: SwiftData.ModelActor, DeviceCommandVisitor {
         if let preset = mockDevice.getPresetBySlot(command.presetSlot) {
             return PresetDetailsNotification(
                 deviceId: mockDevice.id,
-                clientSlot: mockDevice.clientSlot,
                 presetSlot: command.presetSlot,
                 name: preset.name,
                 outletSlot: preset.outlet.outletSlot,
@@ -330,7 +313,6 @@ actor MockDeviceActor: SwiftData.ModelActor, DeviceCommandVisitor {
         try applyToMockDevice(
             PresetDetailsNotification(
                 deviceId: mockDevice.id,
-                clientSlot: mockDevice.clientSlot,
                 presetSlot: command.presetSlot,
                 name: command.name,
                 outletSlot: command.outletSlot,
@@ -345,7 +327,6 @@ actor MockDeviceActor: SwiftData.ModelActor, DeviceCommandVisitor {
         try applyToMockDevice(
             PresetSlotsNotification(
                 deviceId: mockDevice.id,
-                clientSlot: mockDevice.clientSlot,
                 presetSlots: mockDevice.presets.map(\.presetSlot).filter({ $0 != command.presetSlot })
             )
         )
@@ -355,7 +336,6 @@ actor MockDeviceActor: SwiftData.ModelActor, DeviceCommandVisitor {
     private func currentControlsOperated() -> ControlsOperatedNotification {
         return ControlsOperatedNotification(
             deviceId: mockDevice.id,
-            clientSlot: mockDevice.clientSlot,
             selectedTemperature: nil,
             targetTemperature: mockDevice.targetTemperature,
             actualTemperature: mockDevice.actualTemperature,
@@ -371,7 +351,6 @@ actor MockDeviceActor: SwiftData.ModelActor, DeviceCommandVisitor {
             try applyToMockDevice(
                 ControlsOperatedNotification(
                     deviceId: mockDevice.id,
-                    clientSlot: mockDevice.clientSlot,
                     selectedTemperature: nil,
                     targetTemperature: preset.targetTemperature,
                     actualTemperature: mockDevice.actualTemperature,
@@ -403,7 +382,6 @@ actor MockDeviceActor: SwiftData.ModelActor, DeviceCommandVisitor {
         try applyToMockDevice(
             ControlsOperatedNotification(
                 deviceId: mockDevice.id,
-                clientSlot: mockDevice.clientSlot,
                 selectedTemperature: command.targetTemperature,
                 targetTemperature: command.targetTemperature,
                 actualTemperature: mockDevice.actualTemperature,
@@ -422,7 +400,6 @@ actor MockDeviceActor: SwiftData.ModelActor, DeviceCommandVisitor {
         if let outlet = mockDevice.getOutletBySlot(outletSlot: command.outletSlot) {
             return OutletSettingsNotification(
                 deviceId: mockDevice.id,
-                clientSlot: mockDevice.clientSlot,
                 outletSlot: outlet.outletSlot,
                 maximumDurationSeconds: outlet.maximumDurationSeconds,
                 maximumTemperature: outlet.maximumTemperature,
@@ -439,7 +416,6 @@ actor MockDeviceActor: SwiftData.ModelActor, DeviceCommandVisitor {
             try applyToMockDevice(
                 OutletSettingsNotification(
                     deviceId: mockDevice.id,
-                    clientSlot: mockDevice.clientSlot,
                     outletSlot: command.outletSlot,
                     maximumDurationSeconds: command.maximumDurationSeconds,
                     maximumTemperature: command.maximumTemperature,
@@ -457,7 +433,6 @@ actor MockDeviceActor: SwiftData.ModelActor, DeviceCommandVisitor {
         try applyToMockDevice(
             DeviceSettingsNotification(
                 deviceId: mockDevice.id,
-                clientSlot: mockDevice.clientSlot,
                 defaultPresetSlot: mockDevice.defaultPresetSlot ?? 0,
                 standbyLightingEnabled: mockDevice.standbyLightingEnabled,
                 outletsSwitched: mockDevice.outletsSwitched,
@@ -481,7 +456,6 @@ actor MockDeviceActor: SwiftData.ModelActor, DeviceCommandVisitor {
             try applyToMockDevice(
                 TechnicalInformationNotification(
                     deviceId: mockDevice.id,
-                    clientSlot: mockDevice.clientSlot,
                     valveType: 44,
                     valveSoftwareVersion: 8,
                     uiType: 33,
@@ -494,7 +468,6 @@ actor MockDeviceActor: SwiftData.ModelActor, DeviceCommandVisitor {
         let technicalInformation = mockDevice.technicalInformation!
         return TechnicalInformationNotification(
             deviceId: mockDevice.id,
-            clientSlot: mockDevice.clientSlot,
             valveType: technicalInformation.valveType,
             valveSoftwareVersion: technicalInformation.valveSoftwareVersion,
             uiType: technicalInformation.uiType,

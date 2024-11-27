@@ -14,6 +14,7 @@ import AsyncBluetooth
 actor AsyncBluetoothService: ModelActor, BluetoothService {
     private static let logger = LoggerFactory.logger(AsyncBluetoothService.self)
     private static let author = "AsyncBluetoothService"
+    static let pairingClientSlot: UInt8 = 0
 
     private let central: CentralManager = CentralManager()
     
@@ -131,11 +132,11 @@ actor AsyncBluetoothService: ModelActor, BluetoothService {
         }
     }
     
-    func dispatchCommand(_ command: any DeviceCommand) async throws -> any DeviceNotification {
+    func executeCommand(_ command: any DeviceCommand) async throws -> any DeviceNotification {
         try await errorBoundary {
             return try await withTimeout(Self.timeoutDuration) { [self] in
                 let peripheral = try await getConnectedPeripheral(command.deviceId)
-                let commandDispatcher = CommandDispatcher(peripheral: peripheral)
+                let commandDispatcher = CommandExecutor(peripheral: peripheral)
                 return try await command.accept(commandDispatcher)
             }
         }
