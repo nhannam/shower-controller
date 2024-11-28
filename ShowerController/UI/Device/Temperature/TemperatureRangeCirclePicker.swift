@@ -88,6 +88,6 @@ struct TemperatureRangeCirclePicker: View {
     TemperatureRangeCirclePicker(
         lowerTemperature: $lowerTemperature,
         upperTemperature: $upperTemperature,
-        permittedRange: Outlet.permittedTemperatureRange
+        permittedRange: Device.permittedTemperatureRange
     )
 }

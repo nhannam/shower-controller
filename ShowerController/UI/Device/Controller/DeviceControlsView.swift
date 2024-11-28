@@ -15,10 +15,7 @@ struct DeviceControlsView: View {
 
     var device: Device
     
-    @State private var deviceLockoutTracker = DeviceLockoutTracker()
-    @State private var timer: Timer?
-
-    @State private var temperature: Double = 0
+    @State private var temperature: Double = Device.permittedTemperatureRange.lowerBound
 
     @State private var isEditingTemperature = false
     @State private var isSubmitted = false
@@ -67,10 +64,10 @@ struct DeviceControlsView: View {
                     if let activeOutlet {
                         TemperatureCirclePicker(
                             temperature: $temperature,
-                            permittedRange: activeOutlet.temperatureRange ?? Outlet.permittedTemperatureRange,
+                            permittedRange: activeOutlet.temperatureRange ?? Device.permittedTemperatureRange,
                             onEditingChanged: { editing in
                                 if (!editing) {
-                                    temperatureSelected(temperature: temperature)
+                                    onTemperatureSelected(temperature: temperature)
                                 }
                                 isEditingTemperature = editing
                             }
@@ -99,18 +96,17 @@ struct DeviceControlsView: View {
                     }
                 }
             }
-            .disabled(deviceLockoutTracker.lockedOut)
+            .disabled(device.isLockedOut)
             .frame(width: 300, height: 300)
 
             Spacer()
         }
-        .onChange(of: device.updatesLockedOutUntil, initial: true, lockoutTimeChanged)
         .onChange(of: displayTemperature, initial: true) { _, newValue in
             temperature = newValue
         }
     }
     
-    func temperatureSelected(temperature: Double) {
+    func onTemperatureSelected(temperature: Double) {
         isSubmitted = true
         tools.submitJobWithErrorHandler {
             try await tools.deviceService.updateSelectedTemperature(
@@ -119,44 +115,6 @@ struct DeviceControlsView: View {
             )
         } finally: {
             isSubmitted = false
-        }
-    }
-    
-    func lockoutTimeChanged(_ oldDate: Date, _ newDate: Date) {
-        if let timer {
-            timer.invalidate()
-            self.timer = nil
-        }
-        deviceLockoutTracker.lockedOutUntil = newDate
-        deviceLockoutTracker.updateLockedOut()
-        
-        let lockoutTimeRemaining = newDate.timeIntervalSinceNow
-        if lockoutTimeRemaining > 0 {
-            timer = Timer.scheduledTimer(withTimeInterval: lockoutTimeRemaining, repeats: false) {_ in
-                Task {
-                    await deviceLockoutTracker.updateLockedOut()
-                }
-            }
-        }
-    }
-
-}
-
-@MainActor
-@Observable
-final class DeviceLockoutTracker {
-    fileprivate var lockedOutUntil: Date?
-    private(set) var lockedOut = false
-    
-    func updateLockedOut() {
-        if let lockedOutUntil {
-            if lockedOutUntil > Date() {
-                lockedOut = true
-            } else {
-                lockedOut = false
-            }
-        } else {
-            lockedOut = false
         }
     }
 }

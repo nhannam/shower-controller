@@ -26,7 +26,13 @@ class Preset {
     fileprivate(set) var targetTemperature: Double
     fileprivate(set) var durationSeconds: Int
 
-    init(presetSlot: UInt8, name: String, outlet: Outlet, targetTemperature: Double = 0.0, durationSeconds: Int = 0) {
+    init(
+        presetSlot: UInt8,
+        name: String,
+        outlet: Outlet,
+        targetTemperature: Double = Device.permittedTemperatureRange.lowerBound,
+        durationSeconds: Int = Device.maximumPermittedDurationSeconds
+    ) {
         self.presetSlot = presetSlot
         self.name = name
         self.outlet = outlet

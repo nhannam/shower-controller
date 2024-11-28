@@ -322,9 +322,9 @@ actor DeviceService: ModelActor {
         
         // They also require a delay of 5 seconds after stopping the outlets.
         // Re-fetch the device as the stop command may have updated the lockout time
-        let lockoutTime = try getDeviceById(device.id).updatesLockedOutUntil
-        let lockoutTimeRemaining = lockoutTime.timeIntervalSinceNow
-        if (lockoutTimeRemaining > 0) {
+        let updatedDevice = try getDeviceById(device.id)
+        if updatedDevice.isLockedOut {
+            let lockoutTimeRemaining = updatedDevice.updatesLockedOutUntil.timeIntervalSinceNow
             Self.logger.debug("Lock seconds remaining: \(String(describing: lockoutTimeRemaining))")
             try await Task.sleep(for: .milliseconds(lockoutTimeRemaining * 1000))
         }

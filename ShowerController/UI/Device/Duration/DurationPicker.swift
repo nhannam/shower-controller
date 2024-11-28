@@ -65,6 +65,6 @@ struct DurationPicker: View {
     DurationPicker(
         labelText: "Duration",
         seconds: $seconds,
-        maximumSeconds: Outlet.maximumPermittedDurationSeconds
+        maximumSeconds: Device.maximumPermittedDurationSeconds
     )
 }

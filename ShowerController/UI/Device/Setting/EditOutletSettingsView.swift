@@ -17,9 +17,9 @@ struct EditOutletSettingsView: View {
 
     var outlet: Outlet
 
-    @State private var minimumTemperature: Double = Outlet.permittedTemperatureRange.lowerBound
-    @State private var maximumTemperature: Double = Outlet.permittedTemperatureRange.upperBound
-    @State private var maximumDurationSeconds: Int = Outlet.maximumPermittedDurationSeconds
+    @State private var minimumTemperature: Double = Device.permittedTemperatureRange.lowerBound
+    @State private var maximumTemperature: Double = Device.permittedTemperatureRange.upperBound
+    @State private var maximumDurationSeconds: Int = Device.maximumPermittedDurationSeconds
 
     @State private var isShowingConfirmation =  false
     @State private var isSubmitted =  false
@@ -48,7 +48,7 @@ struct EditOutletSettingsView: View {
                                 TemperatureRangeCirclePicker(
                                     lowerTemperature: $minimumTemperature,
                                     upperTemperature: $maximumTemperature,
-                                    permittedRange: Outlet.permittedTemperatureRange
+                                    permittedRange: Device.permittedTemperatureRange
                                 )
                                 .frame(width: 200, height: 200)
                             }
@@ -63,7 +63,7 @@ struct EditOutletSettingsView: View {
                         DurationPicker(
                             labelText: "Max Duration",
                             seconds: $maximumDurationSeconds,
-                            maximumSeconds: Outlet.maximumPermittedDurationSeconds
+                            maximumSeconds: Device.maximumPermittedDurationSeconds
                         )
                         .frame(width: 200, height: 200)
                     },

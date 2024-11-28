@@ -15,8 +15,6 @@ enum OutletType: Int, Codable, CaseIterable, Identifiable {
 
 @Model
 class Outlet {
-    static let permittedTemperatureRange: ClosedRange<Double> = 30.0...48.0
-    static let maximumPermittedDurationSeconds: Int = 30 * 60
     static let outletSlot0: Int = 0
     static let outletSlot1: Int = 1
 
@@ -45,10 +43,10 @@ class Outlet {
         type: OutletType,
         isRunning: Bool = false,
         isEnabledForWirelessRemoteButton: Bool = false,
-        maximumDurationSeconds: Int = Outlet.maximumPermittedDurationSeconds,
-        maximumTemperature: Double = Outlet.permittedTemperatureRange.upperBound,
-        minimumTemperature: Double = Outlet.permittedTemperatureRange.lowerBound,
-        thresholdTemperature: Double = Outlet.permittedTemperatureRange.lowerBound
+        maximumDurationSeconds: Int = Device.maximumPermittedDurationSeconds,
+        maximumTemperature: Double = Device.permittedTemperatureRange.upperBound,
+        minimumTemperature: Double = Device.permittedTemperatureRange.lowerBound,
+        thresholdTemperature: Double = Device.permittedTemperatureRange.lowerBound
     ) {
         self.outletSlot = outletSlot
         self.type = type

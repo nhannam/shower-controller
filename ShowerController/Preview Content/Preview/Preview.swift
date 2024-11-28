@@ -67,18 +67,18 @@ class PreviewData {
     static let outlet0 = Outlet(
         outletSlot: Outlet.outletSlot0,
         type: .overhead,
-        maximumDurationSeconds: Outlet.maximumPermittedDurationSeconds,
-        maximumTemperature: Outlet.permittedTemperatureRange.upperBound,
-        minimumTemperature: Outlet.permittedTemperatureRange.lowerBound,
-        thresholdTemperature: Outlet.permittedTemperatureRange.lowerBound
+        maximumDurationSeconds: Device.maximumPermittedDurationSeconds,
+        maximumTemperature: Device.permittedTemperatureRange.upperBound,
+        minimumTemperature: Device.permittedTemperatureRange.lowerBound,
+        thresholdTemperature: Device.permittedTemperatureRange.lowerBound
     )
     static let outlet1 = Outlet(
         outletSlot: Outlet.outletSlot1,
         type: .bath,
-        maximumDurationSeconds: Outlet.maximumPermittedDurationSeconds,
-        maximumTemperature: Outlet.permittedTemperatureRange.upperBound,
-        minimumTemperature: Outlet.permittedTemperatureRange.lowerBound,
-        thresholdTemperature: Outlet.permittedTemperatureRange.lowerBound
+        maximumDurationSeconds: Device.maximumPermittedDurationSeconds,
+        maximumTemperature: Device.permittedTemperatureRange.upperBound,
+        minimumTemperature: Device.permittedTemperatureRange.lowerBound,
+        thresholdTemperature: Device.permittedTemperatureRange.lowerBound
     )
     let device = Device(
         id: UUID(),

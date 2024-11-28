@@ -12,6 +12,8 @@ enum RunningState: String, Codable { case off, running, cold, paused }
 
 @Model
 class Device {
+    static let permittedTemperatureRange: ClosedRange<Double> = 30.0...48.0
+    static let maximumPermittedDurationSeconds: Int = 30 * 60
     static let durationSecondsSelectionSteps = 10
     static let temperatureSteps = 0.1
     private static let numberOfPresetSlots = UInt8(8)
@@ -47,7 +49,7 @@ class Device {
     
     private(set) var runningState: RunningState
     fileprivate(set) var lastRunningStateReceived: Date
-    
+
     private(set) var updatesLockedOutUntil: Date
 
     fileprivate(set) var selectedTemperature: Double
@@ -88,7 +90,10 @@ class Device {
     var activeOutlet: Outlet? {
         return outlets.first(where: { $0.isRunning }) ?? getOutletBySlot(outletSlot: Outlet.outletSlot0)
     }
-
+    
+    var isLockedOut: Bool {
+        updatesLockedOutUntil >= lastRunningStateReceived
+    }
 
     init(
         id: UUID,
@@ -110,10 +115,10 @@ class Device {
         runningState: RunningState = RunningState.off,
         lastRunningStateReceived: Date = Date.distantPast,
         updatesLockedOutUntil: Date = Date.distantPast,
-        selectedTemperature: Double = 0,
-        targetTemperature: Double = 0,
+        selectedTemperature: Double = Device.permittedTemperatureRange.lowerBound,
+        targetTemperature: Double = Device.permittedTemperatureRange.lowerBound,
         actualTemperature: Double = 0,
-        secondsRemaining: Int = 0
+        secondsRemaining: Int = Device.maximumPermittedDurationSeconds
     ) {
         self.id = id
         self.name = name
