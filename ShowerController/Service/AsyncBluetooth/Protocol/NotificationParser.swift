@@ -219,7 +219,7 @@ final class NotificationParser: Sendable {
                     // payload[6] = 0x00
                     uiSoftwareVersion: payload[7],
                     // payload[8-12] = 0x00,
-                    // payload[13] = 0x2d
+                    bluetoothType: payload[13],
                     // payload[14] = 0x00
                     bluetoothSoftwareVersion: payload[15]
                 )

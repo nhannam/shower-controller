@@ -19,13 +19,15 @@ class TechnicalInformation {
     private(set) var valveSoftwareVersion: UInt8
     private(set) var uiType: UInt8
     private(set) var uiSoftwareVersion: UInt8
+    private(set) var bluetoothType: UInt8
     private(set) var bluetoothSoftwareVersion: UInt8
 
-    init(valveType: UInt8, valveSoftwareVersion: UInt8, uiType: UInt8, uiSoftwareVersion: UInt8, bluetoothSoftwareVersion: UInt8) {
+    init(valveType: UInt8, valveSoftwareVersion: UInt8, uiType: UInt8, uiSoftwareVersion: UInt8, bluetoothType: UInt8, bluetoothSoftwareVersion: UInt8) {
         self.valveType = valveType
         self.valveSoftwareVersion = valveSoftwareVersion
         self.uiType = uiType
         self.uiSoftwareVersion = uiSoftwareVersion
+        self.bluetoothType = bluetoothType
         self.bluetoothSoftwareVersion = bluetoothSoftwareVersion
     }
 }

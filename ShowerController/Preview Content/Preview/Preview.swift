@@ -105,6 +105,7 @@ class PreviewData {
             valveSoftwareVersion: 8,
             uiType: 33,
             uiSoftwareVersion: 6,
+            bluetoothType: 45,
             bluetoothSoftwareVersion: 4
         ),
         standbyLightingEnabled: true,

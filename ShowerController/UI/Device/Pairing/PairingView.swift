@@ -45,6 +45,7 @@ struct PairingView: View {
         await tools.alertOnError {
             await stopScan()
             isScanning = true
+            try await tools.bluetoothService.disconnectAll()
             try await tools.bluetoothService.startScan()
         }
         isScanning = false

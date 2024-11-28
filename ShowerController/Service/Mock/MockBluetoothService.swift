@@ -460,6 +460,7 @@ actor MockDeviceActor: SwiftData.ModelActor, DeviceCommandVisitor {
                     valveSoftwareVersion: 8,
                     uiType: 33,
                     uiSoftwareVersion: 6,
+                    bluetoothType: 45,
                     bluetoothSoftwareVersion: 4
                 )
             )
@@ -472,6 +473,7 @@ actor MockDeviceActor: SwiftData.ModelActor, DeviceCommandVisitor {
             valveSoftwareVersion: technicalInformation.valveSoftwareVersion,
             uiType: technicalInformation.uiType,
             uiSoftwareVersion: technicalInformation.uiSoftwareVersion,
+            bluetoothType: technicalInformation.bluetoothType,
             bluetoothSoftwareVersion: technicalInformation.bluetoothSoftwareVersion
         )
     }

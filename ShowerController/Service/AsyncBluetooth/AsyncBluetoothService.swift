@@ -93,6 +93,15 @@ actor AsyncBluetoothService: ModelActor, BluetoothService {
                             Characteristic.CHARACTERISTIC_NOTIFICATIONS
                         ],
                         for: showerService)
+//
+//                    for chracteristic in showerService.discoveredCharacteristics ?? [] {
+//                        try await peripheral.discoverDescriptors(for: chracteristic)
+//                        for descriptor in chracteristic.descriptors ?? [] {
+//                            try await peripheral.readValue(for: descriptor)
+//                            print("Characteristic \(chracteristic.uuid), Descriptor \(descriptor.uuid), Value \(String(describing: descriptor.value))")
+//                        }
+//
+//                    }
                 }
                 if let deviceInformationService = peripheral.deviceInformationService() {
                     try await peripheral.discoverCharacteristics(

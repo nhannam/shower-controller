@@ -199,6 +199,7 @@ struct TechnicalInformationNotification: DeviceNotification {
     let valveSoftwareVersion: UInt8
     let uiType: UInt8
     let uiSoftwareVersion: UInt8
+    let bluetoothType: UInt8
     let bluetoothSoftwareVersion: UInt8
 
     func accept(_ visitor: any DeviceNotificationVisitor) {

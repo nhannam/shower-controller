@@ -59,6 +59,7 @@ struct TechnicalInformationView: View {
                 Section(
                     header: Text("Bluetooth"),
                     content: {
+                        makeItem(label: "Type", value: technicalInformation.bluetoothType)
                         makeItem(label: "Software Version", value: technicalInformation.bluetoothSoftwareVersion)
                     }
                 )

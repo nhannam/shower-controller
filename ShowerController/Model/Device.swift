@@ -380,6 +380,7 @@ class DeviceNotificatonApplier: DeviceNotificationVisitor {
             valveSoftwareVersion: notification.valveSoftwareVersion,
             uiType: notification.uiType,
             uiSoftwareVersion: notification.uiSoftwareVersion,
+            bluetoothType: notification.bluetoothType,
             bluetoothSoftwareVersion: notification.bluetoothSoftwareVersion
         )
     }
