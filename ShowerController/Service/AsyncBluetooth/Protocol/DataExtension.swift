@@ -36,3 +36,14 @@ public extension Data {
         return reduce("") {$0 + String(format: "%02x ", $1)}
     }
 }
+
+
+extension UInt16 {
+    init?(bigEndian: Data) {
+        if bigEndian.count == 2 {
+            self.init(UInt16(bigEndian[0]) << 8 | UInt16(bigEndian[1]))
+        } else {
+            return nil
+        }
+    }
+}

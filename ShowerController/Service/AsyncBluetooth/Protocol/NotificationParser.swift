@@ -210,18 +210,16 @@ final class NotificationParser: Sendable {
                 notificationType = "TechnicalInformation"
                 notification = TechnicalInformationNotification(
                     deviceId: command.deviceId,
-                    // payload[0] = 0x00
-                    valveType: payload[1],
-                    // payload[2] = 0x00,
-                    valveSoftwareVersion: payload[3],
-                    // payload[4] = 0x00
-                    uiType: payload[5],
-                    // payload[6] = 0x00
-                    uiSoftwareVersion: payload[7],
-                    // payload[8-12] = 0x00,
-                    bluetoothType: payload[13],
-                    // payload[14] = 0x00
-                    bluetoothSoftwareVersion: payload[15]
+                    // it's a bit of an assumption that these are all
+                    // 2 byte valules - the first byte has always been
+                    // seen as 0x00 so far
+                    valveType: UInt16(bigEndian: payload.subdata(in: 0..<2))!,
+                    valveSoftwareVersion: UInt16(bigEndian: payload.subdata(in: 2..<4))!,
+                    uiType: UInt16(bigEndian: payload.subdata(in: 4..<6))!,
+                    uiSoftwareVersion: UInt16(bigEndian: payload.subdata(in: 6..<8))!,
+                    // payload[8-11] = 0x00,
+                    bluetoothType: UInt16(bigEndian: payload.subdata(in: 12..<14))!,
+                    bluetoothSoftwareVersion: UInt16(bigEndian: payload.subdata(in: 14..<16))!
                 )
             default:
                 notificationType = "Unexpected16BytePayload"

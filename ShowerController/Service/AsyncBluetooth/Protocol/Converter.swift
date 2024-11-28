@@ -9,7 +9,7 @@ import Foundation
 
 class Converter {
     static func celciusFromData(_ data: Data) -> Double {
-        return Double(UInt16(data[0]) << 8 | UInt16(data[1])) * Device.temperatureSteps
+        return Double(UInt16(bigEndian: data)!) * Device.temperatureSteps
     }
     
     static func celciusToData(_ celcius: Double) -> Data {
@@ -17,7 +17,7 @@ class Converter {
     }
 
     static func secondsFromData(_ data: Data) -> Int {
-        return Int(UInt16(data[0]) << 8 | UInt16(data[1]))
+        return Int(UInt16(bigEndian: data)!)
     }
 
     static func secondsFromData(_ data: UInt8) -> Int {

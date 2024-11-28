@@ -24,7 +24,7 @@ struct TechnicalInformationView: View {
         }
     }
     
-    func makeItem(label: String, value: UInt8) -> some View {
+    func makeItem(label: String, value: UInt16) -> some View {
         return makeItem(label: label, value: String(value))
     }
     

@@ -16,7 +16,7 @@ class Device {
     static let maximumPermittedDurationSeconds: Int = 30 * 60
     static let durationSecondsSelectionSteps = 10
     static let temperatureSteps = 0.1
-    private static let numberOfPresetSlots = UInt8(8)
+    private static let numberOfPresetSlots = UInt8(10)
     private static let outletsStoppedLockoutDuration: TimeInterval = TimeInterval(5)
 
     @Attribute(.unique)

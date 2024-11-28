@@ -195,12 +195,12 @@ struct PairedClientDetailsNotification: DeviceNotification, ClientNotification {
 
 struct TechnicalInformationNotification: DeviceNotification {
     let deviceId: UUID
-    let valveType: UInt8
-    let valveSoftwareVersion: UInt8
-    let uiType: UInt8
-    let uiSoftwareVersion: UInt8
-    let bluetoothType: UInt8
-    let bluetoothSoftwareVersion: UInt8
+    let valveType: UInt16
+    let valveSoftwareVersion: UInt16
+    let uiType: UInt16
+    let uiSoftwareVersion: UInt16
+    let bluetoothType: UInt16
+    let bluetoothSoftwareVersion: UInt16
 
     func accept(_ visitor: any DeviceNotificationVisitor) {
         visitor.visit(self)
