@@ -49,13 +49,17 @@ struct TechnicalInformationView: View {
                         makeItem(label: "Software Version", value: technicalInformation.valveSoftwareVersion)
                     }
                 )
-                Section(
-                    header: Text("UI"),
-                    content: {
-                        makeItem(label: "Type", value: technicalInformation.uiType)
-                        makeItem(label: "Software Version", value: technicalInformation.uiSoftwareVersion)
-                    }
-                )
+                
+                if let userInterface = device.userInterface {
+                    Section(
+                        header: Text("UI"),
+                        content: {
+                            makeItem(label: "Type", value: userInterface.type)
+                            makeItem(label: "Software Version", value: userInterface.softwareVersion)
+                        }
+                    )
+                }
+                
                 Section(
                     header: Text("Bluetooth"),
                     content: {

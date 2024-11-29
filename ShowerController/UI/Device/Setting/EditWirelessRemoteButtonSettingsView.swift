@@ -23,7 +23,7 @@ struct EditWirelessRemoteButtonSettingsView: View {
     var body: some View {
         NavigationStack {
             Form {
-                ForEach(device.outlets.sorted(by: \.outletSlot)) { outlet in
+                ForEach(device.outletsSortedBySlot) { outlet in
                     var binding: Binding<Bool> {
                         Binding<Bool>(
                             get: { outletsEnabled[outlet.outletSlot] ?? false },
@@ -65,7 +65,7 @@ struct EditWirelessRemoteButtonSettingsView: View {
             .navigationBarBackButtonHidden()
         }
         .task {
-            outletsEnabled = device.outlets.reduce(into: [Int: Bool]()) { dict, outlet in
+            outletsEnabled = device.outletsSortedBySlot.reduce(into: [Int: Bool]()) { dict, outlet in
                 dict[outlet.outletSlot] = outlet.isEnabledForWirelessRemoteButton
             }
         }

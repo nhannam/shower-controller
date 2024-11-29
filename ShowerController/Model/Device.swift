@@ -8,8 +8,6 @@
 import Foundation
 import SwiftData
 
-enum RunningState: String, Codable { case off, running, cold, paused }
-
 @Model
 class Device {
     static let permittedTemperatureRange: ClosedRange<Double> = 30.0...48.0
@@ -18,6 +16,8 @@ class Device {
     static let temperatureSteps = 0.1
     private static let numberOfPresetSlots = UInt8(10)
     private static let outletsStoppedLockoutDuration: TimeInterval = TimeInterval(5)
+
+    enum RunningState: String, Codable { case off, running, cold, paused }
 
     @Attribute(.unique)
     private(set) var id: UUID
@@ -32,7 +32,7 @@ class Device {
     var serialNumber: String
     
     @Relationship(deleteRule: .cascade, inverse: \Outlet.device)
-    fileprivate(set) var outlets: [Outlet]
+    fileprivate var outlets: [Outlet]
     fileprivate(set) var outletsSwitched: Bool
 
     @Relationship(deleteRule: .cascade, inverse: \Preset.device)
@@ -44,7 +44,10 @@ class Device {
     
     @Relationship(deleteRule: .cascade, inverse: \TechnicalInformation.device)
     fileprivate(set) var technicalInformation: TechnicalInformation?
-    
+
+    @Relationship(deleteRule: .cascade, inverse: \UserInterface.device)
+    fileprivate(set) var userInterface: UserInterface?
+
     fileprivate(set) var standbyLightingEnabled: Bool
     
     private(set) var runningState: RunningState
@@ -70,6 +73,10 @@ class Device {
         runningState == .running || runningState == .cold
     }
 
+    var outletsSortedBySlot: [Outlet] {
+        return outlets.sorted(by: \.outletSlot)
+    }
+    
     var outletSlotsEnabledForWirelessRemoteButton: [Int] {
         return outlets
             .filter({ $0.isEnabledForWirelessRemoteButton })
@@ -88,7 +95,7 @@ class Device {
     }
     
     var activeOutlet: Outlet? {
-        return outlets.first(where: { $0.isRunning }) ?? getOutletBySlot(outletSlot: Outlet.outletSlot0)
+        return outlets.first(where: { $0.isRunning }) ?? getOutletBySlot(Outlet.outletSlot0)
     }
     
     var isLockedOut: Bool {
@@ -111,6 +118,7 @@ class Device {
         defaultPresetSlot: UInt8? = nil,
         pairedClients: [PairedClient] = [],
         technicalInformation: TechnicalInformation? = nil,
+        userInterface: UserInterface? = nil,
         standbyLightingEnabled: Bool = true,
         runningState: RunningState = RunningState.off,
         lastRunningStateReceived: Date = Date.distantPast,
@@ -135,6 +143,7 @@ class Device {
         self.defaultPresetSlot = defaultPresetSlot
         self.pairedClients = pairedClients
         self.technicalInformation = technicalInformation
+        self.userInterface = userInterface
         self.standbyLightingEnabled = standbyLightingEnabled
         self.runningState = runningState
         self.lastRunningStateReceived = lastRunningStateReceived
@@ -145,25 +154,38 @@ class Device {
         self.secondsRemaining = secondsRemaining
     }
 
-    func getOutletBySlot(outletSlot: Int) -> Outlet? {
+    func getOutletBySlot(_ outletSlot: Int) -> Outlet? {
         return outlets.first(where: { $0.outletSlot == outletSlot })
     }
 
-    func isOutletRunning(outletSlot: Int) -> Bool {
-        return getOutletBySlot(outletSlot: outletSlot)?.isRunning ?? false
+    fileprivate func addOutletIfNotExists(_ outletSlot: Int, type: Outlet.OutletType) {
+        if getOutletBySlot(outletSlot) == nil {
+            let outlet = Outlet(outletSlot: outletSlot, type: type)
+            outlets.append(outlet)
+        }
     }
+
+    func isOutletRunning(outletSlot: Int) -> Bool {
+        return getOutletBySlot(outletSlot)?.isRunning ?? false
+    }
+    
 
     func getPresetBySlot(_ presetSlot: UInt8) -> Preset? {
         return presets.first(where: { $0.isSlot(presetSlot) })
     }
 
-    fileprivate func addPreset(_ presetSlot: UInt8) -> Preset {
+    fileprivate func addPresetIfNotExists(_ presetSlot: UInt8) -> Preset? {
         if let existing = getPresetBySlot(presetSlot) {
             return existing
         }
-        let preset = Preset(presetSlot: presetSlot, name: "", outlet: getOutletBySlot(outletSlot: Outlet.outletSlot1)!)
-        presets.append(preset)
-        return preset
+        
+        if let defaultOutlet = outletsSortedBySlot.last {
+            let preset = Preset(presetSlot: presetSlot, name: "", outlet: defaultOutlet)
+            presets.append(preset)
+            return preset
+        } else {
+            return nil
+        }
     }
 
     fileprivate func removePresetBySlot(_ presetSlot: UInt8) -> Preset? {
@@ -210,7 +232,7 @@ class Device {
     }
 
     func getRunningStateForTemperature(temperature: Double, outletSlot: Int) -> RunningState {
-        getRunningStateForTemperature(temperature: temperature, outlet: getOutletBySlot(outletSlot: outletSlot))
+        getRunningStateForTemperature(temperature: temperature, outlet: getOutletBySlot(outletSlot))
     }
     
     fileprivate func updateRunningState(_ newRunningState: RunningState) {
@@ -275,7 +297,7 @@ class DeviceNotificatonApplier: DeviceNotificationVisitor {
         if (newSlots != existingSlots) {
             let addedSlots = newSlots.filter({ newSlot in !existingSlots.contains(newSlot) })
             addedSlots.forEach({
-                let _ = device.addPreset($0)
+                let _ = device.addPresetIfNotExists($0)
             })
             
             let removedSlots = existingSlots.filter({ existingSlot in !newSlots.contains(existingSlot) })
@@ -289,8 +311,9 @@ class DeviceNotificatonApplier: DeviceNotificationVisitor {
     }
 
     func visit(_ notification: PresetDetailsNotification) {
-        let preset = device.getPresetBySlot(notification.presetSlot) ?? device.addPreset(notification.presetSlot)
-        notification.accept(PresetNotificationApplier(preset))
+        if let preset = device.addPresetIfNotExists(notification.presetSlot) {
+            notification.accept(PresetNotificationApplier(preset))
+        }
     }
 
 
@@ -310,8 +333,8 @@ class DeviceNotificatonApplier: DeviceNotificationVisitor {
         }
         device.targetTemperature = notification.targetTemperature
         device.actualTemperature = notification.actualTemperature
-        device.getOutletBySlot(outletSlot: Outlet.outletSlot0)?.isRunning = notification.outletSlot0IsRunning
-        device.getOutletBySlot(outletSlot: Outlet.outletSlot1)?.isRunning = notification.outletSlot1IsRunning
+        device.getOutletBySlot(Outlet.outletSlot0)?.isRunning = notification.outletSlot0IsRunning
+        device.getOutletBySlot(Outlet.outletSlot1)?.isRunning = notification.outletSlot1IsRunning
         device.secondsRemaining = notification.secondsRemaining
         device.updateRunningState(notification.runningState)
     }
@@ -322,8 +345,8 @@ class DeviceNotificatonApplier: DeviceNotificationVisitor {
         }
         device.targetTemperature = notification.targetTemperature
         device.actualTemperature = notification.actualTemperature
-        device.getOutletBySlot(outletSlot: Outlet.outletSlot0)?.isRunning = notification.outletSlot0IsRunning
-        device.getOutletBySlot(outletSlot: Outlet.outletSlot1)?.isRunning = notification.outletSlot1IsRunning
+        device.getOutletBySlot(Outlet.outletSlot0)?.isRunning = notification.outletSlot0IsRunning
+        device.getOutletBySlot(Outlet.outletSlot1)?.isRunning = notification.outletSlot1IsRunning
         device.secondsRemaining = notification.secondsRemaining
         device.updateRunningState(notification.runningState)
     }
@@ -369,19 +392,44 @@ class DeviceNotificatonApplier: DeviceNotificationVisitor {
     }
     
     func visit(_ notification: OutletSettingsNotification) {
-        if let outlet = device.getOutletBySlot(outletSlot: notification.outletSlot) {
+        if let outlet = device.getOutletBySlot(notification.outletSlot) {
             notification.accept(OutletNotificationApplier(outlet))
         }
     }
     
     func visit(_ notification: TechnicalInformationNotification) {
         device.technicalInformation = TechnicalInformation(
-            valveType: notification.valveType,
-            valveSoftwareVersion: notification.valveSoftwareVersion,
-            uiType: notification.uiType,
-            uiSoftwareVersion: notification.uiSoftwareVersion,
-            bluetoothType: notification.bluetoothType,
-            bluetoothSoftwareVersion: notification.bluetoothSoftwareVersion
+            valveType: notification.valve.type,
+            valveSoftwareVersion: notification.valve.softwareVersion,
+            bluetoothType: notification.bluetooth.type,
+            bluetoothSoftwareVersion: notification.bluetooth.softwareVersion
+        )
+        
+        for outletSpec in notification.valve.outlets {
+            if let outlet = device.getOutletBySlot(outletSpec.outletSlot) {
+                outlet.apply(outletSpec: outletSpec)
+            } else {
+                device.addOutletIfNotExists(outletSpec.outletSlot, type: outletSpec.type)
+            }
+        }
+        
+        device.userInterface = UserInterface(
+            type: notification.ui.type,
+            softwareVersion: notification.ui.softwareVersion,
+            buttons: notification.ui.buttons.compactMap({ buttonSpec in
+                if let outlet = device.getOutletBySlot(buttonSpec.outletSlot) {
+                    return Optional.some(
+                        UserInterfaceButton(
+                            buttonSlot: buttonSpec.buttonSlot,
+                            display: buttonSpec.display,
+                            start: buttonSpec.start,
+                            outlet: outlet
+                        )
+                    )
+                } else {
+                    return Optional.none
+                }
+            })
         )
     }
     

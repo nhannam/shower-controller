@@ -1,5 +1,5 @@
 //
-//  OutletWithPresetsButton.swift
+//  ControllerButton.swift
 //  ShowerController
 //
 //  Created by Nigel Hannam on 15/11/2024.
@@ -8,15 +8,19 @@
 import SwiftUI
 import SwiftData
 
-struct OutletButton: View {
+struct ControllerButton: View {
     @Environment(Toolbox.self) private var tools
 
     var device: Device
-    var outlet: Outlet
+    var userInterfaceButton: UserInterfaceButton
     
     @State private var isShowingPresetSelector = false
     @State private var isSubmitted = false
 
+    var outlet: Outlet {
+        userInterfaceButton.outlet
+    }
+    
     var presets: [Preset] {
         device.presets
             .filter({ $0.outlet.outletSlot == outlet.outletSlot })
@@ -27,8 +31,8 @@ struct OutletButton: View {
         Button(
             action: toggleOutlet,
             label: {
-                OutletTypeImage(
-                    type: outlet.type,
+                ControllerButtonImage(
+                    userInterfaceButton: userInterfaceButton,
                     isActive: outlet.isRunning,
                     resizable: true
                 )
@@ -54,17 +58,20 @@ struct OutletButton: View {
             if outlet.isRunning {
                 try await tools.deviceService.pauseOutlets(device.id)
             } else {
-                let defaultPreset = device.defaultPreset
-                if (defaultPreset?.outlet.outletSlot == outlet.outletSlot) {
-                    try await tools.deviceService.startPreset(
-                        device.id,
-                        presetSlot: defaultPreset!.presetSlot
-                    )
-                } else {
+                switch userInterfaceButton.start {
+                case .outlet:
                     try await tools.deviceService.startOutlet(
                         device.id,
                         outletSlot: outlet.outletSlot
                     )
+                    
+                case .preset:
+                    if let defaultPreset = device.defaultPreset {
+                        try await tools.deviceService.startPreset(
+                            device.id,
+                            presetSlot: defaultPreset.presetSlot
+                        )
+                    }
                 }
             }
         } finally: {
@@ -84,9 +91,11 @@ struct OutletButton: View {
 
 #Preview {
     Preview {
-        return OutletButton(
+        return ControllerButton(
             device: PreviewData.data.device,
-            outlet: PreviewData.data.device.outlets[1]
+            userInterfaceButton: PreviewData.data.device.userInterface!
+                .buttons
+                .first(where: { $0.buttonSlot == UserInterfaceButton.buttonSlot1 })!
         )
     }
 }

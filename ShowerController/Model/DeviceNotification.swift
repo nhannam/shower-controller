@@ -104,7 +104,7 @@ struct DeviceStateNotification: DeviceNotification {
     let outletSlot0IsRunning: Bool
     let outletSlot1IsRunning: Bool
     let secondsRemaining: Int
-    let runningState: RunningState
+    let runningState: Device.RunningState
 
     func accept(_ visitor: any DeviceNotificationVisitor) {
         visitor.visit(self)
@@ -119,7 +119,7 @@ struct ControlsOperatedNotification: DeviceNotification {
     let outletSlot0IsRunning: Bool
     let outletSlot1IsRunning: Bool
     let secondsRemaining: Int
-    let runningState: RunningState
+    let runningState: Device.RunningState
     
     func accept(_ visitor: any DeviceNotificationVisitor) {
         visitor.visit(self)
@@ -194,13 +194,39 @@ struct PairedClientDetailsNotification: DeviceNotification, ClientNotification {
 }
 
 struct TechnicalInformationNotification: DeviceNotification {
+    struct Valve {
+        struct OutletSpec {
+            let outletSlot: Int
+            let type: Outlet.OutletType
+        }
+        
+        let type: UInt16
+        let softwareVersion: UInt16
+        let outlets: [OutletSpec]
+    }
+    
+    struct UI {
+        struct ButtonSpec {
+            let buttonSlot: Int
+            let display: UserInterfaceButton.ButtonDisplayBehaviour
+            let start: UserInterfaceButton.ButtonStartBehaviour
+            let outletSlot: Int
+        }
+        
+        let type: UInt16
+        let softwareVersion: UInt16
+        let buttons: [ButtonSpec]
+    }
+
+    struct Bluetooth {
+        let type: UInt16
+        let softwareVersion: UInt16
+    }
+
     let deviceId: UUID
-    let valveType: UInt16
-    let valveSoftwareVersion: UInt16
-    let uiType: UInt16
-    let uiSoftwareVersion: UInt16
-    let bluetoothType: UInt16
-    let bluetoothSoftwareVersion: UInt16
+    let valve: Valve
+    let ui: UI
+    let bluetooth: Bluetooth
 
     func accept(_ visitor: any DeviceNotificationVisitor) {
         visitor.visit(self)

@@ -22,7 +22,7 @@ struct WirelessRemoteButtonSettingsListItemView: View {
                 Label(
                     title: {
                         VStack(alignment: .leading) {
-                            ForEach(device.outlets) { outlet in
+                            ForEach(device.outletsSortedBySlot) { outlet in
                                 outletEnabledLabel(outlet: outlet)
                             }
                         }

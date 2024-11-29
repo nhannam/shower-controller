@@ -99,9 +99,13 @@ struct ModelContextTransactionMonitor: ViewModifier {
                         try handleUpdate(historyUpdate: update)
                     case .update(let update as DefaultHistoryUpdate<Preset>):
                         try handleUpdate(historyUpdate: update)
+                    case .update(let update as DefaultHistoryUpdate<ScanResult>):
+                        try handleUpdate(historyUpdate: update)
                     case .update(let update as DefaultHistoryUpdate<TechnicalInformation>):
                         try handleUpdate(historyUpdate: update)
-                    case .update(let update as DefaultHistoryUpdate<ScanResult>):
+                    case .update(let update as DefaultHistoryUpdate<UserInterface>):
+                        try handleUpdate(historyUpdate: update)
+                    case .update(let update as DefaultHistoryUpdate<UserInterfaceButton>):
                         try handleUpdate(historyUpdate: update)
 
                     case .update(_):
@@ -154,6 +158,9 @@ struct ModelContextTransactionMonitor: ViewModifier {
                     case let updatedAttribute as KeyPath<Entity, Device?>:
                         fireUpdate(observationRegistrar: observationRegistrar, entity: model, keyPath: updatedAttribute)
 
+                    case let updatedAttribute as KeyPath<Entity, Device.RunningState>:
+                        fireUpdate(observationRegistrar: observationRegistrar, entity: model, keyPath: updatedAttribute)
+                        
                     case let updatedAttribute as KeyPath<Entity, Double>:
                         fireUpdate(observationRegistrar: observationRegistrar, entity: model, keyPath: updatedAttribute)
 
@@ -170,7 +177,7 @@ struct ModelContextTransactionMonitor: ViewModifier {
                     case let updatedAttribute as KeyPath<Entity, [Outlet]>:
                         fireUpdate(observationRegistrar: observationRegistrar, entity: model, keyPath: updatedAttribute)
                         
-                    case let updatedAttribute as KeyPath<Entity, OutletType>:
+                    case let updatedAttribute as KeyPath<Entity, Outlet.OutletType>:
                         fireUpdate(observationRegistrar: observationRegistrar, entity: model, keyPath: updatedAttribute)
 
                     case let updatedAttribute as KeyPath<Entity, [PairedClient]>:
@@ -182,15 +189,21 @@ struct ModelContextTransactionMonitor: ViewModifier {
                     case let updatedAttribute as KeyPath<Entity, TechnicalInformation?>:
                         fireUpdate(observationRegistrar: observationRegistrar, entity: model, keyPath: updatedAttribute)
                         
-                    case let updatedAttribute as KeyPath<Entity, RunningState>:
-                        fireUpdate(observationRegistrar: observationRegistrar, entity: model, keyPath: updatedAttribute)
-                        
                     case let updatedAttribute as KeyPath<Entity, UInt8>:
                         fireUpdate(observationRegistrar: observationRegistrar, entity: model, keyPath: updatedAttribute)
                     case let updatedAttribute as KeyPath<Entity, UInt8?>:
                         fireUpdate(observationRegistrar: observationRegistrar, entity: model, keyPath: updatedAttribute)
                         
                     case let updatedAttribute as KeyPath<Entity, UInt16>:
+                        fireUpdate(observationRegistrar: observationRegistrar, entity: model, keyPath: updatedAttribute)
+
+                    case let updatedAttribute as KeyPath<Entity, UserInterface?>:
+                        fireUpdate(observationRegistrar: observationRegistrar, entity: model, keyPath: updatedAttribute)
+
+                    case let updatedAttribute as KeyPath<Entity, [UserInterfaceButton]>:
+                        fireUpdate(observationRegistrar: observationRegistrar, entity: model, keyPath: updatedAttribute)
+
+                    case let updatedAttribute as KeyPath<Entity, UserInterfaceButton.ButtonStartBehaviour>:
                         fireUpdate(observationRegistrar: observationRegistrar, entity: model, keyPath: updatedAttribute)
 
                     case let updatedAttribute as KeyPath<Entity, UUID>:

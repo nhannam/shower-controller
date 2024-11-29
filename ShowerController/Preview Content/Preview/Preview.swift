@@ -101,12 +101,18 @@ class PreviewData {
             PairedClient(clientSlot: 1, name: "Paired Client 1")
         ],
         technicalInformation: TechnicalInformation(
-            valveType: 44,
+            valveType: 33,
             valveSoftwareVersion: 8,
-            uiType: 33,
-            uiSoftwareVersion: 6,
             bluetoothType: 45,
             bluetoothSoftwareVersion: 4
+        ),
+        userInterface: UserInterface(
+            type: 44,
+            softwareVersion: 6,
+            buttons: [
+                UserInterfaceButton(buttonSlot: UserInterfaceButton.buttonSlot0,  display: .outlet, start: .outlet, outlet: outlet0),
+                UserInterfaceButton(buttonSlot: UserInterfaceButton.buttonSlot1, display: .outlet, start: .preset, outlet: outlet1)
+            ]
         ),
         standbyLightingEnabled: true,
         runningState: .off,

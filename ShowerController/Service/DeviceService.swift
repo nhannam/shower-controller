@@ -98,11 +98,7 @@ actor DeviceService: ModelActor {
                     Device(
                         id: pairSuccess.deviceId,
                         name: pairSuccess.name,
-                        clientSlot: pairSuccess.clientSlot,
-                        outlets: [
-                            Outlet(outletSlot: Outlet.outletSlot0, type: .overhead),
-                            Outlet(outletSlot: Outlet.outletSlot1, type: .bath)
-                        ]
+                        clientSlot: pairSuccess.clientSlot
                     )
                 )
             }
@@ -124,6 +120,17 @@ actor DeviceService: ModelActor {
     func requestDeviceDetails(_ deviceId: UUID) async throws {
         try await errorBoundary {
             let (device, client) = try await getPairedDevice(deviceId)
+            
+            // Technical info includes info about outlets and UI buttons
+            if device.outletsSortedBySlot.isEmpty || device.userInterface == nil {
+                try await executeCommand(
+                    RequestTechnicalInformation(
+                        deviceId: device.id,
+                        clientSlot: device.clientSlot,
+                        clientSecret: client.secret
+                    )
+                )
+            }
             
             try await executeCommands([
                 RequestState(
@@ -252,7 +259,7 @@ actor DeviceService: ModelActor {
         try await errorBoundary {
             let (device, client) = try await getPairedDevice(deviceId)
             try await executeCommands(
-                device.outlets.map({ outlet in
+                device.outletsSortedBySlot.map({ outlet in
                     RequestOutletSettings(
                         deviceId: device.id,
                         clientSlot: device.clientSlot,

@@ -20,7 +20,7 @@ struct DeviceView: View {
     var body: some View {
         List {
             Section {
-                DeviceControlsView(device: device)
+                DeviceControllerView(device: device)
             }
             
             Section {

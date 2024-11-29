@@ -7,11 +7,13 @@
 
 import SwiftUI
 
-extension OutletType {
+extension Outlet.OutletType {
     var description: String {
         switch self {
         case .overhead:
-            "Overhead Shower"
+            "Shower"
+        case .handset:
+            "Handset"
         case .bath:
             "Bath"
         }

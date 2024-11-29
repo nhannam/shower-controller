@@ -43,7 +43,7 @@ struct OutletSettingsListItemView: View {
     Preview {
         OutletSettingsListItemView(
             action: {},
-            outlet: PreviewData.data.device.outlets[0]
+            outlet: PreviewData.data.device.outletsSortedBySlot[0]
         )
     }
 }

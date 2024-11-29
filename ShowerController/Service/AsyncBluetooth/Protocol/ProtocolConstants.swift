@@ -13,6 +13,10 @@ struct ProtocolConstants {
     
     static let flowRateMaximum: UInt8 = 0x64
     static let flowRateOff: UInt8 = 0x00
+    
+    static let uiTypeDualShower: UInt16 = 42
+    static let uiTypeShowerPlusBath: UInt16 = 44
+    static let uiTypeBath: UInt16 = 10001
 
     // Outlets
     // xxx0 = default
@@ -22,7 +26,6 @@ struct ProtocolConstants {
     // xx0x = lights on
     // xx1x = lights off
     static let standbyLightingDisabledBitMask: UInt8 = 0x02
-    
     
     
     static let outlet0EnabledBitMask: UInt8 = 0x01

@@ -49,7 +49,7 @@ struct EditPresetView: View {
                     isValid: isNameValid
                 )
                 if let outlet {
-                    OutletPicker(outlets: device.outlets, selected: $outlet)
+                    OutletPicker(outlets: device.outletsSortedBySlot, selected: $outlet)
                         .pickerStyle(.segmented)
 
                     if let temperatureRange = outlet.temperatureRange {
@@ -117,9 +117,9 @@ struct EditPresetView: View {
                 outlet = preset.outlet
                 targetTemperature = preset.targetTemperature
                 durationSeconds = preset.durationSeconds
-            } else if let outlet1 = device.getOutletBySlot(outletSlot: Outlet.outletSlot1) {
-                outlet = outlet1
-                targetTemperature = outlet1.minimumTemperature
+            } else if let lastOutlet = device.outletsSortedBySlot.last {
+                outlet = lastOutlet
+                targetTemperature = lastOutlet.minimumTemperature
             }
         }
     }
@@ -141,25 +141,27 @@ struct EditPresetView: View {
     func persistPreset(makeDefault: Bool) {
         isSubmitted = true
         tools.submitJobWithErrorHandler {
-            if let preset {
-                try await tools.deviceService.updatePresetDetails(
-                    device.id,
-                    presetSlot: preset.presetSlot,
-                    name: name,
-                    outletSlot: outlet!.outletSlot,
-                    targetTemperature: targetTemperature,
-                    durationSeconds: durationSeconds,
-                    makeDefault: makeDefault
-                )
-            } else {
-                try await tools.deviceService.createPresetDetails(
-                    device.id,
-                    name: name,
-                    outletSlot: outlet!.outletSlot,
-                    targetTemperature: targetTemperature,
-                    durationSeconds: durationSeconds,
-                    makeDefault: makeDefault
-                )
+            if let outlet {
+                if let preset {
+                    try await tools.deviceService.updatePresetDetails(
+                        device.id,
+                        presetSlot: preset.presetSlot,
+                        name: name,
+                        outletSlot: outlet.outletSlot,
+                        targetTemperature: targetTemperature,
+                        durationSeconds: durationSeconds,
+                        makeDefault: makeDefault
+                    )
+                } else {
+                    try await tools.deviceService.createPresetDetails(
+                        device.id,
+                        name: name,
+                        outletSlot: outlet.outletSlot,
+                        targetTemperature: targetTemperature,
+                        durationSeconds: durationSeconds,
+                        makeDefault: makeDefault
+                    )
+                }
             }
             dismiss()
         } finally: {

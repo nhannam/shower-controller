@@ -125,7 +125,7 @@ struct EditOutletSettingsView: View {
     Preview {
         EditOutletSettingsView(
             device: PreviewData.data.device,
-            outlet: PreviewData.data.device.outlets[0]
+            outlet: PreviewData.data.device.outletsSortedBySlot[0]
         )
     }
 }

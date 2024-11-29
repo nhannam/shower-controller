@@ -8,16 +8,15 @@
 import Foundation
 import SwiftData
 
-enum OutletType: Int, Codable, CaseIterable, Identifiable {
-    case overhead, bath
-    var id: Self { self }
-}
-
 @Model
 class Outlet {
     static let outletSlot0: Int = 0
     static let outletSlot1: Int = 1
 
+    enum OutletType: Int, Codable, CaseIterable, Identifiable {
+        case overhead, handset, bath
+        var id: Self { self }
+    }
 
     #Unique<Outlet>([\.device, \.outletSlot])
     
@@ -60,6 +59,14 @@ class Outlet {
     
     func isMinimumTemperature(_ value: Double) -> Bool {
         minimumTemperature == value
+    }
+    
+    func apply(outletSpec: TechnicalInformationNotification.Valve.OutletSpec) {
+        guard outletSlot == outletSpec.outletSlot else {
+            return
+        }
+        
+        self.type = outletSpec.type
     }
 }
 

@@ -8,7 +8,7 @@
 import SwiftUI
 
 struct OutletTypeLabel: View {
-    var type: OutletType
+    var type: Outlet.OutletType
     var isActive = false
     
     var body: some View {
@@ -21,7 +21,7 @@ struct OutletTypeLabel: View {
 
 #Preview {
     OutletTypeLabel(
-        type: OutletType.bath,
+        type: Outlet.OutletType.bath,
         isActive: true
     )
 }

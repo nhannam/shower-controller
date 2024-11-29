@@ -10,10 +10,16 @@ import SwiftData
 
 // @ModelActor creates a single arg init, which prevents us passing the BluetoothService in
 actor MockBluetoothService: ModelActor, BluetoothService {
-    static let device1Id = UUID()
-    static let device1Name = "Mock Device"
-    
-    static let device2Id = UUID()
+    struct MockDeviceConfig {
+        let name: String
+        let uiType: UInt16
+    }
+    static let mockConfig: [UUID:MockDeviceConfig] = [
+        UUID(): MockDeviceConfig(name: "Single Shower", uiType: 999),
+        UUID(): MockDeviceConfig(name: "Dual Shower", uiType: ProtocolConstants.uiTypeDualShower),
+        UUID(): MockDeviceConfig(name: "Shower plus Bath", uiType: ProtocolConstants.uiTypeShowerPlusBath),
+        UUID(): MockDeviceConfig(name: "Bath", uiType: ProtocolConstants.uiTypeBath)
+    ]
     
     private static let author = "MockBluetoothService"
 
@@ -30,7 +36,11 @@ actor MockBluetoothService: ModelActor, BluetoothService {
     
     func executeCommand(_ command: any DeviceCommand) async throws -> any DeviceNotification {
         if command is PairDevice {
-            return PairSuccessNotification(deviceId: command.deviceId, clientSlot: 1, name: Self.device1Name)
+            if let mockConfig = Self.mockConfig[command.deviceId] {
+                return PairSuccessNotification(deviceId: command.deviceId, clientSlot: 1, name: mockConfig.name)
+            } else {
+                return FailedNotification(deviceId: command.deviceId)
+            }
         }
         
         let deviceActor = try MockDeviceActor(modelContainer: modelContainer, deviceId: command.deviceId)
@@ -53,7 +63,9 @@ actor MockBluetoothService: ModelActor, BluetoothService {
         try await Task.sleep(for: .milliseconds(500))
         
         try self.modelContext.transaction {
-            modelContext.insert(ScanResult(id: MockBluetoothService.device1Id, name: MockBluetoothService.device1Name))
+            for mockConfig in MockBluetoothService.mockConfig {
+                modelContext.insert(ScanResult(id: mockConfig.key, name: mockConfig.value.name))
+            }
         }
     }
     
@@ -74,7 +86,7 @@ actor MockDeviceActor: SwiftData.ModelActor, DeviceCommandVisitor {
     let mockDevice: Device
     
     var outlet0MaxDuration: Int {
-        mockDevice.getOutletBySlot(outletSlot: Outlet.outletSlot0)?.maximumDurationSeconds ?? 1800
+        mockDevice.getOutletBySlot(Outlet.outletSlot0)?.maximumDurationSeconds ?? 1800
     }
 
     init(modelContainer: SwiftData.ModelContainer, deviceId: UUID) throws {
@@ -188,7 +200,7 @@ actor MockDeviceActor: SwiftData.ModelActor, DeviceCommandVisitor {
     }
     
     func visit(_ command: RequestState) async throws -> Response {
-        let newRunningState: RunningState
+        let newRunningState: Device.RunningState
         let newSecondsRemaining: Int
         
         let decrementedTimeRemaining = max(0, mockDevice.secondsRemaining - 1)
@@ -257,6 +269,8 @@ actor MockDeviceActor: SwiftData.ModelActor, DeviceCommandVisitor {
     
     func visit(_ command: RequestPresetSlots) async throws -> Response {
         if mockDevice.presets.isEmpty {
+            let firstOutlet = mockDevice.outletsSortedBySlot.first!
+            let lastOutlet = mockDevice.outletsSortedBySlot.last!
             try applyToMockDevice(
                 PresetSlotsNotification(
                     deviceId: mockDevice.id,
@@ -265,8 +279,8 @@ actor MockDeviceActor: SwiftData.ModelActor, DeviceCommandVisitor {
                 PresetDetailsNotification(
                     deviceId: mockDevice.id,
                     presetSlot: 0,
-                    name: "Warm Bath",
-                    outletSlot: Outlet.outletSlot1,
+                    name: "Warm One",
+                    outletSlot: lastOutlet.outletSlot,
                     targetTemperature: 45,
                     durationSeconds: 1220
                 ),
@@ -274,7 +288,7 @@ actor MockDeviceActor: SwiftData.ModelActor, DeviceCommandVisitor {
                     deviceId: mockDevice.id,
                     presetSlot: 1,
                     name: "Short Run",
-                    outletSlot: Outlet.outletSlot1,
+                    outletSlot: firstOutlet.outletSlot,
                     targetTemperature: 42,
                     durationSeconds: 10
                 ),
@@ -283,7 +297,7 @@ actor MockDeviceActor: SwiftData.ModelActor, DeviceCommandVisitor {
                     defaultPresetSlot: 0,
                     standbyLightingEnabled: true,
                     outletsSwitched: false,
-                    wirelessRemoteButtonOutletSlotsEnabled: [ Outlet.outletSlot0 ]
+                    wirelessRemoteButtonOutletSlotsEnabled: [ firstOutlet.outletSlot ]
                 )
             )
         }
@@ -339,8 +353,8 @@ actor MockDeviceActor: SwiftData.ModelActor, DeviceCommandVisitor {
             selectedTemperature: nil,
             targetTemperature: mockDevice.targetTemperature,
             actualTemperature: mockDevice.actualTemperature,
-            outletSlot0IsRunning: mockDevice.getOutletBySlot(outletSlot: Outlet.outletSlot0)?.isRunning ?? false,
-            outletSlot1IsRunning: mockDevice.getOutletBySlot(outletSlot: Outlet.outletSlot1)?.isRunning ?? false,
+            outletSlot0IsRunning: mockDevice.getOutletBySlot(Outlet.outletSlot0)?.isRunning ?? false,
+            outletSlot1IsRunning: mockDevice.getOutletBySlot(Outlet.outletSlot1)?.isRunning ?? false,
             secondsRemaining: mockDevice.secondsRemaining,
             runningState: mockDevice.runningState
         )
@@ -354,8 +368,8 @@ actor MockDeviceActor: SwiftData.ModelActor, DeviceCommandVisitor {
                     selectedTemperature: nil,
                     targetTemperature: preset.targetTemperature,
                     actualTemperature: mockDevice.actualTemperature,
-                    outletSlot0IsRunning: false,
-                    outletSlot1IsRunning: true,
+                    outletSlot0IsRunning: preset.outlet.outletSlot == Outlet.outletSlot0,
+                    outletSlot1IsRunning: preset.outlet.outletSlot == Outlet.outletSlot1,
                     secondsRemaining: preset.durationSeconds,
                     runningState: .running
                 )
@@ -397,7 +411,7 @@ actor MockDeviceActor: SwiftData.ModelActor, DeviceCommandVisitor {
     }
     
     func visit(_ command: RequestOutletSettings) async throws -> Response {
-        if let outlet = mockDevice.getOutletBySlot(outletSlot: command.outletSlot) {
+        if let outlet = mockDevice.getOutletBySlot(command.outletSlot) {
             return OutletSettingsNotification(
                 deviceId: mockDevice.id,
                 outletSlot: outlet.outletSlot,
@@ -412,7 +426,7 @@ actor MockDeviceActor: SwiftData.ModelActor, DeviceCommandVisitor {
     }
     
     func visit(_ command: UpdateOutletSettings) async throws -> Response {
-        if let _ = mockDevice.getOutletBySlot(outletSlot: command.outletSlot) {
+        if let _ = mockDevice.getOutletBySlot(command.outletSlot) {
             try applyToMockDevice(
                 OutletSettingsNotification(
                     deviceId: mockDevice.id,
@@ -453,29 +467,59 @@ actor MockDeviceActor: SwiftData.ModelActor, DeviceCommandVisitor {
     
     func visit(_ command: RequestTechnicalInformation) async throws -> Response {
         if mockDevice.technicalInformation == nil {
-            try applyToMockDevice(
-                TechnicalInformationNotification(
-                    deviceId: mockDevice.id,
-                    valveType: 44,
-                    valveSoftwareVersion: 8,
-                    uiType: 33,
-                    uiSoftwareVersion: 6,
-                    bluetoothType: 45,
-                    bluetoothSoftwareVersion: 4
+            if let mockConfig = MockBluetoothService.mockConfig[command.deviceId] {
+                let (outlets, buttons) = Converter.outletsAndButtons(mockConfig.uiType)
+                try applyToMockDevice(
+                    TechnicalInformationNotification(
+                        deviceId: mockDevice.id,
+                        valve: TechnicalInformationNotification.Valve(
+                            type: 33,
+                            softwareVersion: 8,
+                            outlets: outlets
+                        ),
+                        ui: TechnicalInformationNotification.UI(
+                            type: mockConfig.uiType,
+                            softwareVersion: 6,
+                            buttons: buttons
+                        ),
+                        bluetooth: TechnicalInformationNotification.Bluetooth(type: 45, softwareVersion: 4)
+                    )
                 )
-            )
+            }
         }
         
-        let technicalInformation = mockDevice.technicalInformation!
-        return TechnicalInformationNotification(
-            deviceId: mockDevice.id,
-            valveType: technicalInformation.valveType,
-            valveSoftwareVersion: technicalInformation.valveSoftwareVersion,
-            uiType: technicalInformation.uiType,
-            uiSoftwareVersion: technicalInformation.uiSoftwareVersion,
-            bluetoothType: technicalInformation.bluetoothType,
-            bluetoothSoftwareVersion: technicalInformation.bluetoothSoftwareVersion
-        )
+        if let technicalInformation = mockDevice.technicalInformation {
+            return TechnicalInformationNotification(
+                deviceId: mockDevice.id,
+                valve: TechnicalInformationNotification.Valve(
+                    type: technicalInformation.valveType,
+                    softwareVersion: technicalInformation.valveSoftwareVersion,
+                    outlets: mockDevice.outletsSortedBySlot.map({ outlet in
+                        TechnicalInformationNotification.Valve.OutletSpec(
+                            outletSlot: outlet.outletSlot,
+                            type: outlet.type
+                        )
+                    })
+                ),
+                ui: TechnicalInformationNotification.UI(
+                    type: mockDevice.userInterface!.type,
+                    softwareVersion:  mockDevice.userInterface!.softwareVersion,
+                    buttons: mockDevice.userInterface!.buttons.map({ button in
+                        TechnicalInformationNotification.UI.ButtonSpec(
+                            buttonSlot: button.buttonSlot,
+                            display: button.display, start: button.start,
+                            outletSlot: button.outlet.outletSlot
+                        )
+                    })
+                ),
+                bluetooth: TechnicalInformationNotification.Bluetooth(
+                    type: technicalInformation.bluetoothType,
+                    softwareVersion: technicalInformation.bluetoothSoftwareVersion
+                )
+            )
+        } else {
+            return FailedNotification(deviceId: command.deviceId)
+        }
     }
     
     func visit(_ command: UnknownRequestTechnicalInformation) async throws -> Response {

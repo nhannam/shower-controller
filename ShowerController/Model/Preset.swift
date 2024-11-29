@@ -54,9 +54,12 @@ class PresetNotificationApplier: PresetNotificationVisitor {
     
     func visit(_ notification: PresetDetailsNotification) {
         preset.name = notification.name
-        preset.outlet = preset.device!.getOutletBySlot(outletSlot: notification.outletSlot)!
         preset.targetTemperature = notification.targetTemperature
         preset.durationSeconds = notification.durationSeconds
+
+        if let outlet = preset.device!.getOutletBySlot(notification.outletSlot) {
+            preset.outlet = outlet
+        }
     }
 }
 

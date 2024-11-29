@@ -8,7 +8,7 @@
 import SwiftUI
 
 struct OutletTypeImage: View {
-    var type: OutletType
+    var type: Outlet.OutletType
     var isActive = false
     var resizable = false
     
@@ -16,6 +16,8 @@ struct OutletTypeImage: View {
         let name = switch type {
         case .overhead:
             "shower"
+        case .handset:
+            "shower.handheld"
         case .bath:
             "bathtub"
         }
@@ -33,7 +35,7 @@ struct OutletTypeImage: View {
 
 #Preview {
     OutletTypeImage(
-        type: OutletType.bath,
+        type: Outlet.OutletType.bath,
         isActive: true
     )
 }

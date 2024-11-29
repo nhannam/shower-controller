@@ -13,7 +13,7 @@ struct OutletPicker: View {
     
     var body: some View {
         Picker("Outlet", selection: $selected) {
-            ForEach(outlets.sorted(by: \.outletSlot)) { outlet in
+            ForEach(outlets) { outlet in
                 OutletTypeLabel(type: outlet.type).tag(outlet)
             }
         }
@@ -21,10 +21,10 @@ struct OutletPicker: View {
 }
 
 #Preview {
-    @Previewable @State var selected: Outlet? = PreviewData.data.device.outlets[1]
+    @Previewable @State var selected: Outlet? = PreviewData.data.device.outletsSortedBySlot[1]
     Preview {
         OutletPicker(
-            outlets: PreviewData.data.device.outlets,
+            outlets: PreviewData.data.device.outletsSortedBySlot,
             selected: $selected
         )
     }

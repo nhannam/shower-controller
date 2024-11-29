@@ -112,7 +112,7 @@ final class NotificationParser: Sendable {
                     wirelessRemoteButtonOutletSlotsEnabled.append(Outlet.outletSlot0)
                 }
                 if (payload[1] & ProtocolConstants.outlet1EnabledBitMask == ProtocolConstants.outlet1EnabledBitMask) {
-                    wirelessRemoteButtonOutletSlotsEnabled.append(Outlet.outletSlot0)
+                    wirelessRemoteButtonOutletSlotsEnabled.append(Outlet.outletSlot1)
                 }
 
                 let standbyLightingEnabled = (payload[3] & ProtocolConstants.standbyLightingDisabledBitMask) != ProtocolConstants.standbyLightingDisabledBitMask
@@ -207,19 +207,29 @@ final class NotificationParser: Sendable {
                     nickname: nickname?.isEmpty ?? true ? nil : nickname
                 )
             case is RequestTechnicalInformation:
+                // it's a bit of an assumption that these are all
+                // 2 byte valules - the first byte has always been
+                // seen as 0x00 so far
+                let uiType = UInt16(bigEndian: payload.subdata(in: 4..<6))!
+                let (outlets, buttons) = Converter.outletsAndButtons(uiType)
                 notificationType = "TechnicalInformation"
                 notification = TechnicalInformationNotification(
                     deviceId: command.deviceId,
-                    // it's a bit of an assumption that these are all
-                    // 2 byte valules - the first byte has always been
-                    // seen as 0x00 so far
-                    valveType: UInt16(bigEndian: payload.subdata(in: 0..<2))!,
-                    valveSoftwareVersion: UInt16(bigEndian: payload.subdata(in: 2..<4))!,
-                    uiType: UInt16(bigEndian: payload.subdata(in: 4..<6))!,
-                    uiSoftwareVersion: UInt16(bigEndian: payload.subdata(in: 6..<8))!,
+                    valve: TechnicalInformationNotification.Valve(
+                        type: UInt16(bigEndian: payload.subdata(in: 0..<2))!,
+                        softwareVersion: UInt16(bigEndian: payload.subdata(in: 2..<4))!,
+                        outlets: outlets
+                    ),
+                    ui: TechnicalInformationNotification.UI(
+                        type: uiType,
+                        softwareVersion: UInt16(bigEndian: payload.subdata(in: 6..<8))!,
+                        buttons: buttons
+                    ),
                     // payload[8-11] = 0x00,
-                    bluetoothType: UInt16(bigEndian: payload.subdata(in: 12..<14))!,
-                    bluetoothSoftwareVersion: UInt16(bigEndian: payload.subdata(in: 14..<16))!
+                    bluetooth: TechnicalInformationNotification.Bluetooth(
+                        type: UInt16(bigEndian: payload.subdata(in: 12..<14))!,
+                        softwareVersion: UInt16(bigEndian: payload.subdata(in: 14..<16))!
+                    )
                 )
             default:
                 notificationType = "Unexpected16BytePayload"
@@ -263,7 +273,7 @@ final class NotificationParser: Sendable {
                     // payload[6] - 00
                     // payload[7] - 00
                     name: String(data: payload.dropFirst(8).prefix(while: { $0 != 0x00 }), encoding: .utf8) ?? "",
-                    outletSlot: (payload[5] & ProtocolConstants.outlet0EnabledBitMask) == ProtocolConstants.outlet0EnabledBitMask ? Outlet.outletSlot0 : Outlet.outletSlot1,
+                    outletSlot: (payload[5] & ProtocolConstants.outlet1EnabledBitMask) == ProtocolConstants.outlet1EnabledBitMask ? Outlet.outletSlot1 : Outlet.outletSlot0,
                     targetTemperature: Converter.celciusFromData(payload.subdata(in: 1..<3)),
                     durationSeconds: Converter.secondsFromData(payload[4])
                 )

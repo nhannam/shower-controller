@@ -1,5 +1,5 @@
 //
-//  DeviceControlsView.swift
+//  DeviceControllerView.swift
 //  ShowerController
 //
 //  Created by Nigel Hannam on 17/10/2024.
@@ -8,8 +8,8 @@
 import SwiftUI
 import SwiftData
 
-struct DeviceControlsView: View {
-    private static let logger = LoggerFactory.logger(DeviceControlsView.self)
+struct DeviceControllerView: View {
+    private static let logger = LoggerFactory.logger(DeviceControllerView.self)
     
     @Environment(Toolbox.self) private var tools
 
@@ -30,9 +30,6 @@ struct DeviceControlsView: View {
 
     var body: some View {
         HStack {
-            let outlet0 = device.outlets.first(where: { $0.outletSlot == Outlet.outletSlot0 })
-            let outlet1 = device.outlets.first(where: { $0.outletSlot == Outlet.outletSlot1 })
-            
             Spacer()
             
             VStack {
@@ -42,17 +39,15 @@ struct DeviceControlsView: View {
                             seconds: device.secondsRemaining
                         )
                         .foregroundStyle(device.runningState == .paused ? .gray : .black)
-                        .frame(alignment: .top)
+                        .padding(.top, 10)
+                        .padding(.bottom, 1)
                         .font(.largeTitle)
                         
                         GridRow {
-                            if let outlet0 {
-                                OutletButton(device: device, outlet: outlet0)
-                            }
-
-                            if let outlet1 {
-                                Spacer()
-                                OutletButton(device: device, outlet: outlet1)
+                            ForEach(device.userInterface?.buttons.sorted(by: \.buttonSlot) ?? []) { button in
+                                ControllerButton(device: device, userInterfaceButton: button)
+                                    .padding(.horizontal, 10)
+                                    .frame(maxHeight: 140)
                             }
                         }
                         
@@ -121,7 +116,7 @@ struct DeviceControlsView: View {
 
 #Preview {
     Preview {
-        DeviceControlsView(
+        DeviceControllerView(
             device: PreviewData.data.device
         )
     }

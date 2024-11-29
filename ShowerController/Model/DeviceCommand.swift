@@ -163,7 +163,7 @@ struct OperateOutletControls: PairedDeviceCommand {
     let outletSlot0Running: Bool
     let outletSlot1Running: Bool
     let targetTemperature: Double
-    let runningState: RunningState
+    let runningState: Device.RunningState
     
     func accept<V: DeviceCommandVisitor>(_ visitor: V) async throws -> V.Response {
         return try await visitor.visit(self)
