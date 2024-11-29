@@ -7,7 +7,7 @@
 
 import Foundation
 
-actor DataAccumulator {
+class DataAccumulator {
     private static let logger = LoggerFactory.logger(DataAccumulator.self)
 
     private let clientSlot: UInt8

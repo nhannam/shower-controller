@@ -40,24 +40,26 @@ extension CommandExecutor: DeviceCommandVisitor {
     }
 
     private func writeData(_ payload: Data, command: DeviceCommand, clientSlot: UInt8, clientSecret: Data) async throws -> DeviceNotification {
-        let notificationData = PublisherAsyncSequence<Data>(
-            valuesPublisher: await peripheral.characteristicValueUpdatedPublisher
-                .filter { $0.characteristic.uuid == Characteristic.CHARACTERISTIC_NOTIFICATIONS }
-                .compactMap(\.value)
-        )
+        let dataAccumulator = DataAccumulator(clientSlot: clientSlot)
+        let notificationParser = NotificationParser(peripheral: peripheral, command: command)
+
+        var notificationData = await peripheral.characteristicValueUpdatedPublisher
+            .filter { $0.characteristic.uuid == Characteristic.CHARACTERISTIC_NOTIFICATIONS }
+            .compactMap(\.value)
+            .compactMap({ dataAccumulator.accumulate($0) })
+            .compactMap({ notificationParser.parseNotification($0) })
+            .buffer(size: 1, prefetch: .keepFull, whenFull: .dropNewest)
+            .values
+            .makeAsyncIterator()
         
         let payloadWithCrc = payload.withCrc(clientSecret: clientSecret)
         try await writeData(payloadWithCrc: payloadWithCrc)
         
-        let notificationParser = NotificationParser(peripheral: peripheral, command: command)
-        let dataAccumulator = DataAccumulator(clientSlot: clientSlot)
-        for await notification in notificationData
-            .compactMap({ data in return await dataAccumulator.accumulate(data) })
-            .compactMap({ data in return notificationParser.parseNotification(data) }) {
+        if let notification = await notificationData.next() {
             return notification
+        } else {
+            throw BluetoothServiceError.notificationNotReceived
         }
-        
-        throw BluetoothServiceError.notificationNotReceived
     }
     
     private func writeData<Command: PairedDeviceCommand>(_ payload: Data, command: Command) async throws -> DeviceNotification {
