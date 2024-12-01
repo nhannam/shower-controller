@@ -9,7 +9,7 @@ import Foundation
 
 protocol DeviceCommand: Sendable {
     var deviceId: UUID { get }
-    func accept<V: DeviceCommandVisitor>(_ visitor: V) async throws -> V.Response
+    func accept<V: DeviceCommandVisitor>(isolation: isolated (any Actor)?, _ visitor: V) async throws -> V.Response
 }
 
 protocol PairedDeviceCommand: DeviceCommand {
@@ -30,8 +30,8 @@ struct PairDevice: DeviceCommand {
     var clientSecret: Data
     let clientName: String
     
-    func accept<V: DeviceCommandVisitor>(_ visitor: V) async throws -> V.Response {
-        return try await visitor.visit(self)
+    func accept<V: DeviceCommandVisitor>(isolation: isolated (any Actor)?, _ visitor: V) async throws -> V.Response {
+        return try await visitor.visit(isolation: isolation, self)
     }
 }
 
@@ -40,8 +40,8 @@ struct RequestDeviceInformation: PairedDeviceCommand {
     var clientSlot: UInt8
     var clientSecret: Data
 
-    func accept<V: DeviceCommandVisitor>(_ visitor: V) async throws -> V.Response {
-        return try await visitor.visit(self)
+    func accept<V: DeviceCommandVisitor>(isolation: isolated (any Actor)?, _ visitor: V) async throws -> V.Response {
+        return try await visitor.visit(isolation: isolation, self)
     }
 }
 
@@ -50,8 +50,8 @@ struct RequestNickname: PairedDeviceCommand {
     var clientSlot: UInt8
     var clientSecret: Data
 
-    func accept<V: DeviceCommandVisitor>(_ visitor: V) async throws -> V.Response {
-        return try await visitor.visit(self)
+    func accept<V: DeviceCommandVisitor>(isolation: isolated (any Actor)?, _ visitor: V) async throws -> V.Response {
+        return try await visitor.visit(isolation: isolation, self)
     }
 }
 
@@ -61,8 +61,8 @@ struct UpdateNickname: PairedDeviceCommand {
     var clientSecret: Data
     let nickname: String
     
-    func accept<V: DeviceCommandVisitor>(_ visitor: V) async throws -> V.Response {
-        return try await visitor.visit(self)
+    func accept<V: DeviceCommandVisitor>(isolation: isolated (any Actor)?, _ visitor: V) async throws -> V.Response {
+        return try await visitor.visit(isolation: isolation, self)
     }
 }
 
@@ -71,8 +71,8 @@ struct RequestState: PairedDeviceCommand {
     var clientSlot: UInt8
     var clientSecret: Data
 
-    func accept<V: DeviceCommandVisitor>(_ visitor: V) async throws -> V.Response {
-        return try await visitor.visit(self)
+    func accept<V: DeviceCommandVisitor>(isolation: isolated (any Actor)?, _ visitor: V) async throws -> V.Response {
+        return try await visitor.visit(isolation: isolation, self)
     }
 }
 
@@ -81,8 +81,8 @@ struct RequestDeviceSettings: PairedDeviceCommand{
     var clientSlot: UInt8
     var clientSecret: Data
 
-    func accept<V: DeviceCommandVisitor>(_ visitor: V) async throws -> V.Response {
-        return try await visitor.visit(self)
+    func accept<V: DeviceCommandVisitor>(isolation: isolated (any Actor)?, _ visitor: V) async throws -> V.Response {
+        return try await visitor.visit(isolation: isolation, self)
     }
 }
 
@@ -92,8 +92,8 @@ struct UpdateDefaultPresetSlot: PresetCommand {
     var clientSecret: Data
     let presetSlot: UInt8
     
-    func accept<V: DeviceCommandVisitor>(_ visitor: V) async throws -> V.Response {
-        return try await visitor.visit(self)
+    func accept<V: DeviceCommandVisitor>(isolation: isolated (any Actor)?, _ visitor: V) async throws -> V.Response {
+        return try await visitor.visit(isolation: isolation, self)
     }
 }
 
@@ -102,8 +102,8 @@ struct RequestPresetSlots: PairedDeviceCommand {
     var clientSlot: UInt8
     var clientSecret: Data
 
-    func accept<V: DeviceCommandVisitor>(_ visitor: V) async throws -> V.Response {
-        return try await visitor.visit(self)
+    func accept<V: DeviceCommandVisitor>(isolation: isolated (any Actor)?, _ visitor: V) async throws -> V.Response {
+        return try await visitor.visit(isolation: isolation, self)
     }
 }
 
@@ -114,8 +114,8 @@ struct UpdateControllerSettings: PairedDeviceCommand {
     let standbyLightingEnabled: Bool
     let outletsSwitched: Bool
 
-    func accept<V: DeviceCommandVisitor>(_ visitor: V) async throws -> V.Response {
-        return try await visitor.visit(self)
+    func accept<V: DeviceCommandVisitor>(isolation: isolated (any Actor)?, _ visitor: V) async throws -> V.Response {
+        return try await visitor.visit(isolation: isolation, self)
     }
 }
 
@@ -129,8 +129,8 @@ struct UpdateOutletSettings: PairedDeviceCommand {
     let minimumTemperature: Double
     let thresholdTemperature: Double
 
-    func accept<V: DeviceCommandVisitor>(_ visitor: V) async throws -> V.Response {
-        return try await visitor.visit(self)
+    func accept<V: DeviceCommandVisitor>(isolation: isolated (any Actor)?, _ visitor: V) async throws -> V.Response {
+        return try await visitor.visit(isolation: isolation, self)
     }
 }
 
@@ -140,8 +140,8 @@ struct RequestOutletSettings: PairedDeviceCommand {
     var clientSecret: Data
     let outletSlot: Int
 
-    func accept<V: DeviceCommandVisitor>(_ visitor: V) async throws -> V.Response {
-        return try await visitor.visit(self)
+    func accept<V: DeviceCommandVisitor>(isolation: isolated (any Actor)?, _ visitor: V) async throws -> V.Response {
+        return try await visitor.visit(isolation: isolation, self)
     }
 }
 
@@ -151,8 +151,8 @@ struct UpdateWirelessRemoteButtonSettings: PairedDeviceCommand {
     var clientSecret: Data
     let outletSlotsEnabled: [Int]
 
-    func accept<V: DeviceCommandVisitor>(_ visitor: V) async throws -> V.Response {
-        return try await visitor.visit(self)
+    func accept<V: DeviceCommandVisitor>(isolation: isolated (any Actor)?, _ visitor: V) async throws -> V.Response {
+        return try await visitor.visit(isolation: isolation, self)
     }
 }
 
@@ -165,8 +165,8 @@ struct OperateOutletControls: PairedDeviceCommand {
     let targetTemperature: Double
     let runningState: Device.RunningState
     
-    func accept<V: DeviceCommandVisitor>(_ visitor: V) async throws -> V.Response {
-        return try await visitor.visit(self)
+    func accept<V: DeviceCommandVisitor>(isolation: isolated (any Actor)?, _ visitor: V) async throws -> V.Response {
+        return try await visitor.visit(isolation: isolation, self)
     }
 }
 
@@ -176,8 +176,8 @@ struct RequestPresetDetails: PresetCommand {
     var clientSecret: Data
     let presetSlot: UInt8
     
-    func accept<V: DeviceCommandVisitor>(_ visitor: V) async throws -> V.Response {
-        return try await visitor.visit(self)
+    func accept<V: DeviceCommandVisitor>(isolation: isolated (any Actor)?, _ visitor: V) async throws -> V.Response {
+        return try await visitor.visit(isolation: isolation, self)
     }
 }
 
@@ -191,8 +191,8 @@ struct UpdatePresetDetails: PresetCommand {
     let targetTemperature: Double
     let durationSeconds: Int
     
-    func accept<V: DeviceCommandVisitor>(_ visitor: V) async throws -> V.Response {
-        return try await visitor.visit(self)
+    func accept<V: DeviceCommandVisitor>(isolation: isolated (any Actor)?, _ visitor: V) async throws -> V.Response {
+        return try await visitor.visit(isolation: isolation, self)
     }
 }
 
@@ -202,8 +202,8 @@ struct DeletePresetDetails: PresetCommand {
     var clientSecret: Data
     let presetSlot: UInt8
     
-    func accept<V: DeviceCommandVisitor>(_ visitor: V) async throws -> V.Response {
-        return try await visitor.visit(self)
+    func accept<V: DeviceCommandVisitor>(isolation: isolated (any Actor)?, _ visitor: V) async throws -> V.Response {
+        return try await visitor.visit(isolation: isolation, self)
     }
 }
 
@@ -213,8 +213,8 @@ struct StartPreset: PresetCommand {
     var clientSecret: Data
     let presetSlot: UInt8
     
-    func accept<V: DeviceCommandVisitor>(_ visitor: V) async throws -> V.Response {
-        return try await visitor.visit(self)
+    func accept<V: DeviceCommandVisitor>(isolation: isolated (any Actor)?, _ visitor: V) async throws -> V.Response {
+        return try await visitor.visit(isolation: isolation, self)
     }
 }
 
@@ -224,8 +224,8 @@ struct UnpairDevice: PairedClientCommand {
     var clientSecret: Data
     let pairedClientSlot: UInt8
     
-    func accept<V: DeviceCommandVisitor>(_ visitor: V) async throws -> V.Response {
-        return try await visitor.visit(self)
+    func accept<V: DeviceCommandVisitor>(isolation: isolated (any Actor)?, _ visitor: V) async throws -> V.Response {
+        return try await visitor.visit(isolation: isolation, self)
     }
 }
 
@@ -234,8 +234,8 @@ struct RequestPairedClientSlots: PairedDeviceCommand {
     var clientSlot: UInt8
     var clientSecret: Data
 
-    func accept<V: DeviceCommandVisitor>(_ visitor: V) async throws -> V.Response {
-        return try await visitor.visit(self)
+    func accept<V: DeviceCommandVisitor>(isolation: isolated (any Actor)?, _ visitor: V) async throws -> V.Response {
+        return try await visitor.visit(isolation: isolation, self)
     }
 }
 
@@ -245,8 +245,8 @@ struct RequestPairedClientDetails: PairedClientCommand {
     var clientSecret: Data
     let pairedClientSlot: UInt8
     
-    func accept<V: DeviceCommandVisitor>(_ visitor: V) async throws -> V.Response {
-        return try await visitor.visit(self)
+    func accept<V: DeviceCommandVisitor>(isolation: isolated (any Actor)?, _ visitor: V) async throws -> V.Response {
+        return try await visitor.visit(isolation: isolation, self)
     }
 }
 
@@ -255,8 +255,8 @@ struct RestartDevice: PairedDeviceCommand {
     var clientSlot: UInt8
     var clientSecret: Data
 
-    func accept<V: DeviceCommandVisitor>(_ visitor: V) async throws -> V.Response {
-        return try await visitor.visit(self)
+    func accept<V: DeviceCommandVisitor>(isolation: isolated (any Actor)?, _ visitor: V) async throws -> V.Response {
+        return try await visitor.visit(isolation: isolation, self)
     }
 }
 
@@ -265,8 +265,8 @@ struct FactoryResetDevice: PairedDeviceCommand {
     var clientSlot: UInt8
     var clientSecret: Data
 
-    func accept<V: DeviceCommandVisitor>(_ visitor: V) async throws -> V.Response {
-        return try await visitor.visit(self)
+    func accept<V: DeviceCommandVisitor>(isolation: isolated (any Actor)?, _ visitor: V) async throws -> V.Response {
+        return try await visitor.visit(isolation: isolation, self)
     }
 }
 
@@ -275,8 +275,8 @@ struct RequestTechnicalInformation: PairedDeviceCommand {
     var clientSlot: UInt8
     var clientSecret: Data
 
-    func accept<V: DeviceCommandVisitor>(_ visitor: V) async throws -> V.Response {
-        return try await visitor.visit(self)
+    func accept<V: DeviceCommandVisitor>(isolation: isolated (any Actor)?, _ visitor: V) async throws -> V.Response {
+        return try await visitor.visit(isolation: isolation, self)
     }
 }
 
@@ -285,8 +285,8 @@ struct UnknownRequestTechnicalInformation: PairedDeviceCommand {
     var clientSlot: UInt8
     var clientSecret: Data
 
-    func accept<V: DeviceCommandVisitor>(_ visitor: V) async throws -> V.Response {
-        return try await visitor.visit(self)
+    func accept<V: DeviceCommandVisitor>(isolation: isolated (any Actor)?, _ visitor: V) async throws -> V.Response {
+        return try await visitor.visit(isolation: isolation, self)
     }
 }
 
@@ -295,8 +295,8 @@ struct UnknownCommand: PairedDeviceCommand {
     var clientSlot: UInt8
     var clientSecret: Data
 
-    func accept<V: DeviceCommandVisitor>(_ visitor: V) async throws -> V.Response {
-        return try await visitor.visit(self)
+    func accept<V: DeviceCommandVisitor>(isolation: isolated (any Actor)?, _ visitor: V) async throws -> V.Response {
+        return try await visitor.visit(isolation: isolation, self)
     }
 }
 
@@ -304,43 +304,43 @@ struct UnknownCommand: PairedDeviceCommand {
 protocol DeviceCommandVisitor {
     associatedtype Response: Sendable
     
-    func visit(_ command: PairDevice) async throws -> Response
-    func visit(_ command: UnpairDevice) async throws -> Response
+    func visit(isolation: isolated (any Actor)?, _ command: PairDevice) async throws -> Response
+    func visit(isolation: isolated (any Actor)?, _ command: UnpairDevice) async throws -> Response
     
-    func visit(_ command: RequestPairedClientSlots) async throws -> Response
-    func visit(_ command: RequestPairedClientDetails) async throws -> Response
+    func visit(isolation: isolated (any Actor)?, _ command: RequestPairedClientSlots) async throws -> Response
+    func visit(isolation: isolated (any Actor)?, _ command: RequestPairedClientDetails) async throws -> Response
 
-    func visit(_ command: RequestDeviceInformation) async throws -> Response
-    func visit(_ command: RequestNickname) async throws -> Response
-    func visit(_ command: UpdateNickname) async throws -> Response
+    func visit(isolation: isolated (any Actor)?, _ command: RequestDeviceInformation) async throws -> Response
+    func visit(isolation: isolated (any Actor)?, _ command: RequestNickname) async throws -> Response
+    func visit(isolation: isolated (any Actor)?, _ command: UpdateNickname) async throws -> Response
     
-    func visit(_ command: RequestState) async throws -> Response
+    func visit(isolation: isolated (any Actor)?, _ command: RequestState) async throws -> Response
     
-    func visit(_ command: RequestDeviceSettings) async throws -> Response
-    func visit(_ command: UpdateDefaultPresetSlot) async throws -> Response
-    func visit(_ command: UpdateControllerSettings) async throws -> Response
+    func visit(isolation: isolated (any Actor)?, _ command: RequestDeviceSettings) async throws -> Response
+    func visit(isolation: isolated (any Actor)?, _ command: UpdateDefaultPresetSlot) async throws -> Response
+    func visit(isolation: isolated (any Actor)?, _ command: UpdateControllerSettings) async throws -> Response
 
-    func visit(_ command: RequestPresetSlots) async throws -> Response
+    func visit(isolation: isolated (any Actor)?, _ command: RequestPresetSlots) async throws -> Response
     
-    func visit(_ command: RequestPresetDetails) async throws -> Response
-    func visit(_ command: UpdatePresetDetails) async throws -> Response
-    func visit(_ command: DeletePresetDetails) async throws -> Response
+    func visit(isolation: isolated (any Actor)?, _ command: RequestPresetDetails) async throws -> Response
+    func visit(isolation: isolated (any Actor)?, _ command: UpdatePresetDetails) async throws -> Response
+    func visit(isolation: isolated (any Actor)?, _ command: DeletePresetDetails) async throws -> Response
 
-    func visit(_ command: StartPreset) async throws -> Response
-    func visit(_ command: OperateOutletControls) async throws -> Response
+    func visit(isolation: isolated (any Actor)?, _ command: StartPreset) async throws -> Response
+    func visit(isolation: isolated (any Actor)?, _ command: OperateOutletControls) async throws -> Response
     
-    func visit(_ command: RequestOutletSettings) async throws -> Response
-    func visit(_ command: UpdateOutletSettings) async throws -> Response
+    func visit(isolation: isolated (any Actor)?, _ command: RequestOutletSettings) async throws -> Response
+    func visit(isolation: isolated (any Actor)?, _ command: UpdateOutletSettings) async throws -> Response
 
-    func visit(_ command: UpdateWirelessRemoteButtonSettings) async throws -> Response
+    func visit(isolation: isolated (any Actor)?, _ command: UpdateWirelessRemoteButtonSettings) async throws -> Response
     
 
-    func visit(_ command: RestartDevice) async throws -> Response
-    func visit(_ command: FactoryResetDevice) async throws -> Response
+    func visit(isolation: isolated (any Actor)?, _ command: RestartDevice) async throws -> Response
+    func visit(isolation: isolated (any Actor)?, _ command: FactoryResetDevice) async throws -> Response
 
-    func visit(_ command: RequestTechnicalInformation) async throws -> Response
-    func visit(_ command: UnknownRequestTechnicalInformation) async throws -> Response
+    func visit(isolation: isolated (any Actor)?, _ command: RequestTechnicalInformation) async throws -> Response
+    func visit(isolation: isolated (any Actor)?, _ command: UnknownRequestTechnicalInformation) async throws -> Response
 
-    func visit(_ command: UnknownCommand) async throws -> Response
+    func visit(isolation: isolated (any Actor)?, _ command: UnknownCommand) async throws -> Response
 
 }

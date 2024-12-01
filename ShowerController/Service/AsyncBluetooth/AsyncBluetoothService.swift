@@ -6,7 +6,7 @@
 //
 
 import Foundation
-@preconcurrency import CoreBluetooth
+import CoreBluetooth
 import SwiftData
 import AsyncBluetooth
 
@@ -75,7 +75,16 @@ actor AsyncBluetoothService: ModelActor, BluetoothService {
         try await ensureCentralReady()
         return central.retrievePeripherals(withIdentifiers: [deviceId]).first
     }
-    
+
+    private func connect(_ peripheral: Peripheral) async throws {
+        try await withTimeout(
+            Self.timeoutDuration,
+            error: BluetoothServiceError.cannotConnectToPeripheral
+        ) {
+            try await self.central.connect(peripheral)
+        }
+    }
+
     private func makeReady(_ peripheral: Peripheral) async throws {
         try await withTimeout(
             Self.timeoutDuration,
@@ -123,15 +132,10 @@ actor AsyncBluetoothService: ModelActor, BluetoothService {
         }
     }
     
-    private func getConnectedPeripheral(_ deviceId: UUID) async throws -> Peripheral {
+    private func getReadyPeripheral(_ deviceId: UUID) async throws -> Peripheral {
         if let peripheral = try await getPeripheral(deviceId) {
             if (peripheral.state != .connected ) {
-                try await withTimeout(
-                    Self.timeoutDuration,
-                    error: BluetoothServiceError.cannotConnectToPeripheral
-                ) {
-                    try await self.central.connect(peripheral)
-                }
+                try await connect(peripheral)
             }
             
             try await makeReady(peripheral)
@@ -143,10 +147,10 @@ actor AsyncBluetoothService: ModelActor, BluetoothService {
     
     func executeCommand(_ command: any DeviceCommand) async throws -> any DeviceNotification {
         try await errorBoundary {
-            return try await withTimeout(Self.timeoutDuration) { [self] in
-                let peripheral = try await getConnectedPeripheral(command.deviceId)
+            let peripheral = try await self.getReadyPeripheral(command.deviceId)
+            return try await withTimeout(Self.timeoutDuration) {
                 let commandDispatcher = CommandExecutor(peripheral: peripheral)
-                return try await command.accept(commandDispatcher)
+                return try await command.accept(isolation: self, commandDispatcher)
             }
         }
     }
@@ -176,9 +180,9 @@ actor AsyncBluetoothService: ModelActor, BluetoothService {
     }
     
     func disconnect(_ deviceId: UUID) async throws {
-        try await errorBoundary {
-            if let peripheral = try await self.getPeripheral(deviceId) {
-                try await self.disconnectPeripheral(peripheral)
+        try await errorBoundary { [self] in
+            if let peripheral = try await getPeripheral(deviceId) {
+                try await disconnectPeripheral(peripheral)
             }
         }
     }
@@ -219,10 +223,10 @@ actor AsyncBluetoothService: ModelActor, BluetoothService {
     
     func stopScan() async throws {
         try await errorBoundary {
+            try await self.ensureCentralReady()
             return try await withTimeout(Self.timeoutDuration) {
                 if (await self.central.isScanning) {
                     Self.logger.debug("stopping scan")
-                    try await self.ensureCentralReady()
                     await self.central.stopScan()
                     Self.logger.debug("stopped scan")
                 }

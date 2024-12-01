@@ -32,7 +32,11 @@ class Toolboxes {
         let mockTools = Toolbox(
             modelContainer: mockModelContainer,
             bluetoothService: ManagedReentrancyBluetoothService(
-                bluetoothService: MockBluetoothService(modelContainer: mockModelContainer)
+                bluetoothService: MockBluetoothService(
+                    modelContainer: mockModelContainer,
+                    // Use a separate model container for the mock peripherals
+                    mockPeripherals: try MockPeripherals(modelContainer: try ModelContainer.create(isStoredInMemoryOnly: true))
+                )
             )
         )
         

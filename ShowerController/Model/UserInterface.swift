@@ -18,6 +18,7 @@ class UserInterface {
     var type: UInt16
     var softwareVersion: UInt16
     
+    @Relationship(deleteRule: .cascade, inverse: \UserInterfaceButton.userInterface)
     var buttons: [UserInterfaceButton]
     
     init(device: Device? = nil, type: UInt16, softwareVersion: UInt16, buttons: [UserInterfaceButton]) {

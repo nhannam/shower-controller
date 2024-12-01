@@ -13,12 +13,12 @@ struct DeviceStatePollingModifier: ViewModifier {
     private static let logger = LoggerFactory.logger(DeviceStatePollingModifier.self)
     private static let POLL_FREQUENCY = TimeInterval(1)
 
-    enum PollingState { case stop, start, awaitResponse, ok, failed }
+    enum PollingState { case start, awaitResponse, ok, failed }
 
     @Environment(\.scenePhase) private var scenePhase
     @Environment(Toolbox.self) private var tools
     
-    @State private var pollingState: PollingState = .stop
+    @State private var pollingState: PollingState = .start
     @State private var stausColour: Color = .secondary
 
 
@@ -36,8 +36,6 @@ struct DeviceStatePollingModifier: ViewModifier {
             .onDisappear(perform: stopTimer)
             .onChange(of: pollingState, initial: true) {
                 switch pollingState {
-                case .stop:
-                    stausColour = .secondary
                 case .start:
                     stausColour = .secondary
                 case .awaitResponse:
@@ -51,11 +49,7 @@ struct DeviceStatePollingModifier: ViewModifier {
             }
             .onReceive(timer) { time in
                 Self.logger.debug("timer \(time)")
-                if (pollingState == .start || pollingState == .ok || pollingState == .failed) {
-                    Self.logger.debug("Requesting device state")
-                    pollingState = .awaitResponse
-                    requestState()
-                }
+                maybePollState()
             }
             .toolbar {
                 ToolbarItem(placement: .status) {
@@ -70,10 +64,6 @@ struct DeviceStatePollingModifier: ViewModifier {
             
     }
 
-    func stopPolling() {
-        pollingState = .stop
-    }
-
     func startPolling() {
         pollingState = .start
     }
@@ -81,6 +71,7 @@ struct DeviceStatePollingModifier: ViewModifier {
     func startTimer() {
         Self.logger.debug("timer starting")
         timer.upstream.connect().cancel()
+        maybePollState()
         timer = Timer.publish(every: Self.POLL_FREQUENCY, on: .main, in: .common).autoconnect()
     }
 
@@ -90,13 +81,16 @@ struct DeviceStatePollingModifier: ViewModifier {
     }
     
     
-    func requestState() {
-        tools.submitJob {
-            do {
-                try await tools.deviceService.requestState(deviceId)
-                pollingState = .ok
-            } catch {
-                if (pollingState != .stop) {
+    func maybePollState() {
+        if (pollingState != .awaitResponse) {
+            Self.logger.debug("Requesting device state")
+            pollingState = .awaitResponse
+
+            tools.submitJob {
+                do {
+                    try await tools.deviceService.requestState(deviceId)
+                    pollingState = .ok
+                } catch {
                     pollingState = .failed
                 }
             }

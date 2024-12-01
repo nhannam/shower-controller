@@ -76,9 +76,13 @@ struct DeviceView: View {
     
     func refresh() async {
         await tools.alertOnError {
-            try await tools.deviceService.requestDeviceDetails(device.id)
-            try await tools.deviceService.requestOutletSettings(device.id)
-            try await tools.deviceService.requestPresets(device.id)
+            let deviceId = device.id
+            try await tools.deviceService.requestDeviceDetails(deviceId)
+            
+            async let requestOutletSettings: Void = try await tools.deviceService.requestOutletSettings(deviceId)
+            async let requestPresets: Void = try await tools.deviceService.requestPresets(deviceId)
+            
+            _ = try await [ requestOutletSettings, requestPresets ]
         }
     }
     

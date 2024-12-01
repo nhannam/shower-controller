@@ -9,7 +9,7 @@ import Foundation
 import AsyncBluetooth
 @preconcurrency import Combine
 
-actor CommandExecutor {
+class CommandExecutor {
     private static let logger = LoggerFactory.logger(CommandExecutor.self)
 
     let peripheral: Peripheral
@@ -22,7 +22,7 @@ actor CommandExecutor {
 extension CommandExecutor: DeviceCommandVisitor {
     typealias Response = DeviceNotification
     
-    private func writeData(payloadWithCrc: Data) async throws {
+    private func writeData(isolation: isolated (any Actor)? = #isolation, payloadWithCrc: Data) async throws {
         var startIndex = 0
         
         let totalBytes = payloadWithCrc.count
@@ -39,7 +39,7 @@ extension CommandExecutor: DeviceCommandVisitor {
         Self.logger.debug("Written: \(payloadWithCrc.hexDescription)")
     }
 
-    private func writeData(_ payload: Data, command: DeviceCommand, clientSlot: UInt8, clientSecret: Data) async throws -> DeviceNotification {
+    private func writeData(isolation: isolated (any Actor)? = #isolation, _ payload: Data, command: DeviceCommand, clientSlot: UInt8, clientSecret: Data) async throws -> DeviceNotification {
         let dataAccumulator = DataAccumulator(clientSlot: clientSlot)
         let notificationParser = NotificationParser(peripheral: peripheral, command: command)
 
@@ -62,11 +62,11 @@ extension CommandExecutor: DeviceCommandVisitor {
         }
     }
     
-    private func writeData<Command: PairedDeviceCommand>(_ payload: Data, command: Command) async throws -> DeviceNotification {
+    private func writeData<Command: PairedDeviceCommand>(isolation: isolated (any Actor)? = #isolation, _ payload: Data, command: Command) async throws -> DeviceNotification {
         return try await writeData(payload, command: command, clientSlot: command.clientSlot, clientSecret: command.clientSecret)
     }
 
-    func visit(_ command: PairDevice) async throws -> DeviceNotification {
+    func visit(isolation: isolated (any Actor)?, _ command: PairDevice) async throws -> DeviceNotification {
         let name = command.clientName.data(using: .utf8)!.withPaddingTo(length: 20)
         let payload = Data(command.clientSecret + name)
         
@@ -81,28 +81,28 @@ extension CommandExecutor: DeviceCommandVisitor {
         )
     }
     
-    func visit(_ command: UnpairDevice) async throws -> DeviceNotification {
+    func visit(isolation: isolated (any Actor)?, _ command: UnpairDevice) async throws -> DeviceNotification {
         return try await writeData(
             Data([command.clientSlot, 0xeb, 0x01, command.pairedClientSlot]),
             command: command
         )
     }
     
-    func visit(_ command: RequestPairedClientSlots) async throws -> DeviceNotification {
+    func visit(isolation: isolated (any Actor)?, _ command: RequestPairedClientSlots) async throws -> DeviceNotification {
         return try await writeData(
             Data([command.clientSlot, 0x6b, 0x01, 0x00]),
             command: command
         )
     }
     
-    func visit(_ command: RequestPairedClientDetails) async throws -> DeviceNotification {
+    func visit(isolation: isolated (any Actor)?, _ command: RequestPairedClientDetails) async throws -> DeviceNotification {
         return try await writeData(
             Data([command.clientSlot, 0x6b, 0x01, 0x10 + command.pairedClientSlot]),
             command: command
         )
     }
     
-    func visit(_ command: RequestDeviceInformation) async throws -> DeviceNotification {
+    func visit(isolation: isolated (any Actor)?, _ command: RequestDeviceInformation) async throws -> DeviceNotification {
         let manufacturerName: String = try await peripheral.readValue(
             forCharacteristicWithCBUUID: Characteristic.CHARACTERISTIC_MANUFACTURER_NAME,
             ofServiceWithCBUUID: Service.SERVICE_DEVICE_INFORMATION
@@ -134,14 +134,14 @@ extension CommandExecutor: DeviceCommandVisitor {
         )
     }
     
-    func visit(_ command: RequestNickname) async throws -> DeviceNotification {
+    func visit(isolation: isolated (any Actor)?, _ command: RequestNickname) async throws -> DeviceNotification {
         return try await writeData(
             Data([command.clientSlot, 0x44, 0x00]),
             command: command
         )
     }
     
-    func visit(_ command: UpdateNickname) async throws -> DeviceNotification {
+    func visit(isolation: isolated (any Actor)?, _ command: UpdateNickname) async throws -> DeviceNotification {
         let payload = command.nickname.data(using: .utf8)!.withPaddingTo(length: 16)
         return try await writeData(
             Data([command.clientSlot, 0xc4, UInt8(payload.count)]) + payload,
@@ -149,28 +149,28 @@ extension CommandExecutor: DeviceCommandVisitor {
         )
     }
     
-    func visit(_ command: RequestState) async throws -> DeviceNotification {
+    func visit(isolation: isolated (any Actor)?, _ command: RequestState) async throws -> DeviceNotification {
         return try await writeData(
             Data([command.clientSlot, 0x07, 0x00]),
             command: command
         )
     }
     
-    func visit(_ command: RequestDeviceSettings) async throws -> DeviceNotification {
+    func visit(isolation: isolated (any Actor)?, _ command: RequestDeviceSettings) async throws -> DeviceNotification {
         return try await writeData(
             Data([command.clientSlot, 0x3e, 0x00]),
             command: command
         )
     }
     
-    func visit(_ command: UpdateDefaultPresetSlot) async throws -> DeviceNotification {
+    func visit(isolation: isolated (any Actor)?, _ command: UpdateDefaultPresetSlot) async throws -> DeviceNotification {
         return try await writeData(
             Data([command.clientSlot, 0xbe, 0x02, 0x02, command.presetSlot]),
             command: command
         )
     }
     
-    func visit(_ command: UpdateWirelessRemoteButtonSettings) async throws -> DeviceNotification {
+    func visit(isolation: isolated (any Actor)?, _ command: UpdateWirelessRemoteButtonSettings) async throws -> DeviceNotification {
         let outlet0: UInt8 = command.outletSlotsEnabled.contains(Outlet.outletSlot0) ? ProtocolConstants.outlet0EnabledBitMask : 0x00
         let outlet1: UInt8 = command.outletSlotsEnabled.contains(Outlet.outletSlot1) ? ProtocolConstants.outlet1EnabledBitMask : 0x00
         return try await writeData(
@@ -179,7 +179,7 @@ extension CommandExecutor: DeviceCommandVisitor {
         )
     }
     
-    func visit(_ command: UpdateControllerSettings) async throws -> DeviceNotification {
+    func visit(isolation: isolated (any Actor)?, _ command: UpdateControllerSettings) async throws -> DeviceNotification {
         let lightingDisabled: UInt8 = command.standbyLightingEnabled ? 0x00 : ProtocolConstants.standbyLightingDisabledBitMask
         let topButtonOutletType: UInt8 = command.outletsSwitched ? ProtocolConstants.outletsSwitchedBitMask : 0x00
         return try await writeData(
@@ -188,21 +188,21 @@ extension CommandExecutor: DeviceCommandVisitor {
         )
     }
 
-    func visit(_ command: RequestPresetSlots) async throws -> DeviceNotification {
+    func visit(isolation: isolated (any Actor)?, _ command: RequestPresetSlots) async throws -> DeviceNotification {
         return try await writeData(
             Data([command.clientSlot, 0x30, 0x01, 0x80]),
             command: command
         )
     }
     
-    func visit(_ command: RequestPresetDetails) async throws -> DeviceNotification {
+    func visit(isolation: isolated (any Actor)?, _ command: RequestPresetDetails) async throws -> DeviceNotification {
         return try await writeData(
             Data([command.clientSlot, 0x30, 0x01, 0x40 + command.presetSlot]),
             command: command
         )
     }
     
-    func visit(_ command: UpdatePresetDetails) async throws -> DeviceNotification {
+    func visit(isolation: isolated (any Actor)?, _ command: UpdatePresetDetails) async throws -> DeviceNotification {
         // 00 b0 18
         // 00 01 c2 64 84 02 00 00
         // NAME: 57 61 72 6d 20 42 61 74 68 00 00 00 00 00 00 00
@@ -219,7 +219,7 @@ extension CommandExecutor: DeviceCommandVisitor {
         )
     }
     
-    func visit(_ command: DeletePresetDetails) async throws -> DeviceNotification {
+    func visit(isolation: isolated (any Actor)?, _ command: DeletePresetDetails) async throws -> DeviceNotification {
         let payload = Data([command.clientSlot, 0xb0, 0x18, command.presetSlot, 0x01 ]) + Data(count: 22)
         return try await writeData(
             payload,
@@ -227,14 +227,14 @@ extension CommandExecutor: DeviceCommandVisitor {
         )
     }
     
-    func visit(_ command: StartPreset) async throws -> DeviceNotification {
+    func visit(isolation: isolated (any Actor)?, _ command: StartPreset) async throws -> DeviceNotification {
         return try await writeData(
             Data([command.clientSlot, 0xb1, 0x01, command.presetSlot]),
             command: command
         )
     }
     
-    func visit(_ command: OperateOutletControls) async throws -> DeviceNotification {
+    func visit(isolation: isolated (any Actor)?, _ command: OperateOutletControls) async throws -> DeviceNotification {
         return try await writeData(
             Data(
                 [command.clientSlot, 0x87, 0x05, Converter.runningStateToData(command.runningState)] +
@@ -248,7 +248,7 @@ extension CommandExecutor: DeviceCommandVisitor {
         )
     }
     
-    func visit(_ command: RequestOutletSettings) async throws -> DeviceNotification {
+    func visit(isolation: isolated (any Actor)?, _ command: RequestOutletSettings) async throws -> DeviceNotification {
         let commandType: UInt8 = command.outletSlot == Outlet.outletSlot0 ? 0x0f : 0x10
         return try await writeData(
             Data([ command.clientSlot, commandType, 0x00 ]),
@@ -257,7 +257,7 @@ extension CommandExecutor: DeviceCommandVisitor {
     }
     
     
-    func visit(_ command: UpdateOutletSettings) async throws -> DeviceNotification {
+    func visit(isolation: isolated (any Actor)?, _ command: UpdateOutletSettings) async throws -> DeviceNotification {
         let commandType: UInt8 = command.outletSlot == Outlet.outletSlot0 ? 0x8f : 0x90
         let outletFlag: UInt8 = command.outletSlot == Outlet.outletSlot0 ? 0x00 : 0x04
         
@@ -280,35 +280,35 @@ extension CommandExecutor: DeviceCommandVisitor {
         )
     }
     
-    func visit(_ command: RestartDevice) async throws -> DeviceNotification {
+    func visit(isolation: isolated (any Actor)?, _ command: RestartDevice) async throws -> DeviceNotification {
         return try await writeData(
             Data([ command.clientSlot, 0xf4, 0x01, 0x01 ]),
             command: command
         )
     }
     
-    func visit(_ command: FactoryResetDevice) async throws -> DeviceNotification {
+    func visit(isolation: isolated (any Actor)?, _ command: FactoryResetDevice) async throws -> DeviceNotification {
         return try await writeData(
             Data([ command.clientSlot, 0xf4, 0x01, 0x02 ]),
             command: command
         )
     }
     
-    func visit(_ command: RequestTechnicalInformation) async throws -> DeviceNotification {
+    func visit(isolation: isolated (any Actor)?, _ command: RequestTechnicalInformation) async throws -> DeviceNotification {
         return try await writeData(
             Data([ command.clientSlot, 0x32, 0x01, 0x01 ]),
             command: command
         )
     }
     
-    func visit(_ command: UnknownRequestTechnicalInformation) async throws -> DeviceNotification {
+    func visit(isolation: isolated (any Actor)?, _ command: UnknownRequestTechnicalInformation) async throws -> DeviceNotification {
         return try await writeData(
             Data([ command.clientSlot, 0x41, 0x00 ]),
             command: command
         )
     }
     
-    func visit(_ command: UnknownCommand) async throws -> DeviceNotification {
+    func visit(isolation: isolated (any Actor)?, _ command: UnknownCommand) async throws -> DeviceNotification {
 //        return try await writeData(Data([ command.clientSlot, 0x40, 0x00 ]), command: command)
 //        return try await writeData(Data([ command.clientSlot, 0x40, 0x01, 0x01 ]), command: command)
         throw DeviceServiceError.internalError

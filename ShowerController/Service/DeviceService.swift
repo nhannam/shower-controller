@@ -41,8 +41,6 @@ actor DeviceService: ModelActor {
             try await block()
         } catch let error as DeviceServiceError {
             throw error
-        } catch BluetoothServiceError.cancelled {
-            Self.logger.info("Bluetooth Operation was cancelled")
         } catch let error as BluetoothServiceError {
             throw error
         } catch {
@@ -112,8 +110,14 @@ actor DeviceService: ModelActor {
     }
 
     private func executeCommands(_ commands: [DeviceCommand]) async throws {
-        for command in commands {
-            try await executeCommand(command)
+        try await withThrowingTaskGroup(of: Void.self) { group in
+            for command in commands {
+                group.addTask {
+                    try await self.executeCommand(command)
+                }
+            }
+            
+            try await group.waitForAll()
         }
     }
 
@@ -132,18 +136,13 @@ actor DeviceService: ModelActor {
                 )
             }
             
-            try await executeCommands([
-                RequestState(
-                    deviceId: device.id,
-                    clientSlot: device.clientSlot,
-                    clientSecret: client.secret
-                ),
+            try await executeCommand(
                 RequestNickname(
                     deviceId: device.id,
                     clientSlot: device.clientSlot,
                     clientSecret: client.secret
-                ),
-            ])
+                )
+            )
         }
     }
     
@@ -216,7 +215,7 @@ actor DeviceService: ModelActor {
                     outletSlot0Running: device.isOutletRunning(outletSlot: Outlet.outletSlot0),
                     outletSlot1Running: device.isOutletRunning(outletSlot: Outlet.outletSlot1),
                     targetTemperature: targetTemperature,
-                    runningState: device.getRunningStateForTemperature(temperature: targetTemperature)
+                    runningState: device.isWaterFlowing ? device.getRunningStateForTemperature(temperature: targetTemperature) : device.runningState
                 )
             )
         }
