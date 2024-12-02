@@ -49,7 +49,6 @@ struct PresetsView: View {
         .navigationTitle("Presets")
         .deviceStatePolling(device.id)
         .suspendable(
-            asyncJobExecutor: tools.asyncJobExecutor,
             onResume: refresh
         )
         .refreshable(action: refresh)

@@ -19,7 +19,7 @@ struct PairDeviceButton: View {
 
     var body: some View {
         Button(
-            action: startPairing,
+            action: { isSubmitted = true },
             label: {
                 Label(
                     title: { Text(scanResult.name) },
@@ -34,14 +34,18 @@ struct PairDeviceButton: View {
             }
         )
         .disabled(isSubmitted)
+        .task(id: isSubmitted) {
+            if isSubmitted {
+                await startPairing()
+                isSubmitted = false
+            }
+        
+        }
     }
     
-    func startPairing() {
-        isSubmitted = true
-        tools.submitJobWithErrorHandler {
+    func startPairing() async {
+        await tools.alertOnError {
             try await tools.deviceService.pair(scanResult.id)
-        } finally: {
-            isSubmitted = false
         }
     }
 }

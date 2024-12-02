@@ -9,13 +9,15 @@ import SwiftUI
 import SwiftData
 
 struct ControllerButton: View {
+    enum Action: Equatable { case toggleOutlet, startPreset(_ presetSlot: UInt8) }
+    
     @Environment(Toolbox.self) private var tools
 
     var device: Device
     var userInterfaceButton: UserInterfaceButton
     
     @State private var isShowingPresetSelector = false
-    @State private var isSubmitted = false
+    @State private var action: Action? = nil
 
     var outlet: Outlet {
         userInterfaceButton.outlet
@@ -29,7 +31,7 @@ struct ControllerButton: View {
 
     var body: some View {
         Button(
-            action: toggleOutlet,
+            action: { action = .toggleOutlet },
             label: {
                 ControllerButtonImage(
                     userInterfaceButton: userInterfaceButton,
@@ -40,21 +42,33 @@ struct ControllerButton: View {
                 .onLongPressGesture(perform: { isShowingPresetSelector = true })
             }
         )
-        .disabled(isSubmitted || (!outlet.isRunning && device.defaultPresetSlot == nil))
+        .disabled(action != nil || (!outlet.isRunning && device.defaultPresetSlot == nil))
         .buttonStyle(.borderless)
         .confirmationDialog(presets.isEmpty ? "No Presets For Outlet" : "Start Preset", isPresented: $isShowingPresetSelector, titleVisibility: .visible) {
             ForEach(presets) { preset in
                 Button(
-                    action: { startPreset(preset.presetSlot) },
+                    action: { action = .startPreset(preset.presetSlot) },
                     label: { Text(preset.name) }
                 )
             }
         }
+        .task(id: action) {
+            if let action {
+                switch action {
+                case .toggleOutlet:
+                    await toggleOutlet()
+                    
+                case .startPreset(let presetSlot):
+                    await startPreset(presetSlot)
+                }
+
+                self.action = nil
+            }
+        }
     }
     
-    func toggleOutlet() {
-        isSubmitted = true
-        tools.submitJobWithErrorHandler {
+    func toggleOutlet() async {
+        await tools.alertOnError {
             if outlet.isRunning {
                 try await tools.deviceService.pauseOutlets(device.id)
             } else {
@@ -74,17 +88,12 @@ struct ControllerButton: View {
                     }
                 }
             }
-        } finally: {
-            isSubmitted = false
         }
     }
 
-    func startPreset(_ presetSlot: UInt8) {
-        isSubmitted = true
-        tools.submitJobWithErrorHandler {
+    func startPreset(_ presetSlot: UInt8) async {
+        await tools.alertOnError {
             try await tools.deviceService.startPreset(device.id, presetSlot: presetSlot)
-        } finally: {
-            isSubmitted = false
         }
     }
 }

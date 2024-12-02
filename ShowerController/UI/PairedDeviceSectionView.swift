@@ -15,7 +15,7 @@ struct PairedDeviceSectionView: View {
 
     @Query var devices: [Device]
 
-    @State var isSubmitted = false
+    @State var selectedDevice: Device? = nil
 
     var body: some View {
         Section(
@@ -27,7 +27,7 @@ struct PairedDeviceSectionView: View {
                     .swipeActions(allowsFullSwipe: false) {
                         Button(
                             "Unpair",
-                            action: { unpair(device: device) }
+                            action: { selectedDevice = device }
                         )
                         .tint(.red)
                     }
@@ -35,15 +35,18 @@ struct PairedDeviceSectionView: View {
             },
             header: { Text("Paired") }
         )
-        .disabled(isSubmitted)
+        .disabled(selectedDevice != nil)
+        .task(id: selectedDevice) {
+            if let selectedDevice {
+                await unpair(device: selectedDevice)
+                self.selectedDevice = nil
+            }
+        }
     }
     
-    func unpair(device: Device) {
-        isSubmitted = true
-        tools.submitJobWithErrorHandler {
+    func unpair(device: Device) async {
+        await tools.alertOnError {
             try await tools.deviceService.unpair(device.id, clientSlot: device.clientSlot)
-        } finally: {
-            isSubmitted = false
         }
     }
 }

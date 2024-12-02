@@ -21,18 +21,18 @@ class AlertingErrorHandler {
     fileprivate var showError = false
     
     func alertOnError(_ job: @escaping @MainActor () async throws -> Void) async {
-        defer {
-            showError = localizedError != nil
-        }
-        
         do {
             try await job()
             localizedError = nil
+        } catch BluetoothServiceError.cancelled {
+            Self.logger.info("Bluetooth operation cancelled")
         } catch let error as LocalizedError {
             localizedError = error
         } catch {
             localizedError = WrappedError.wrapped(error: error)
         }
+        
+        showError = localizedError != nil
     }
 }
 
@@ -49,7 +49,6 @@ struct AlertingErrorHandlerModifier: ViewModifier {
                 presenting: errorHandler.localizedError,
                 actions: {_ in
                     Button("OK") {
-                        errorHandler.showError = false
                         errorHandler.localizedError = nil
                     }
                 },

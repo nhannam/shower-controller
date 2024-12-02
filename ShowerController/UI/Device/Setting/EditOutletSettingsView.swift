@@ -83,7 +83,7 @@ struct EditOutletSettingsView: View {
                         if !device.isStopped {
                             isShowingConfirmation = true
                         } else {
-                            persist()
+                            isSubmitted = true
                         }
                     }
                     .disabled(!isValid)
@@ -92,7 +92,7 @@ struct EditOutletSettingsView: View {
             .deviceLockoutConfirmationDialog(
                 $isShowingConfirmation,
                 device: device,
-                confirmAction: persist
+                confirmAction: { isSubmitted = true }
             )
             .operationInProgress(isSubmitted)
             .navigationTitle(outlet.type.description)
@@ -103,11 +103,16 @@ struct EditOutletSettingsView: View {
             maximumTemperature = outlet.maximumTemperature
             maximumDurationSeconds = outlet.maximumDurationSeconds
         }
+        .task(id: isSubmitted) {
+            if isSubmitted {
+                await persist()
+                isSubmitted = false
+            }
+        }
     }
     
-    func persist() {
-        isSubmitted = true
-        tools.submitJobWithErrorHandler {
+    func persist() async {
+        await tools.alertOnError {
             try await tools.deviceService.updateOutletSettings(
                 device.id,
                 outletSlot: outlet.outletSlot,
@@ -115,8 +120,6 @@ struct EditOutletSettingsView: View {
                 maximumDurationSeconds: maximumDurationSeconds
             )
             dismiss()
-        } finally: {
-            isSubmitted = false
         }
     }
 }

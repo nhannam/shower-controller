@@ -189,13 +189,13 @@ actor AsyncBluetoothService: ModelActor, BluetoothService {
     
     func startScan() async throws {
         try await errorBoundary {
+            try await self.ensureCentralReady()
+
             Self.logger.debug("starting scan")
-            
+
             defer {
                 Self.logger.debug("scan finished")
             }
-
-            try await self.ensureCentralReady()
 
             guard await !self.central.isScanning else {
                 throw BluetoothServiceError.alreadyScanning

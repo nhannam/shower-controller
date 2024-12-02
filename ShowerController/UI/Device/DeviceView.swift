@@ -37,10 +37,6 @@ struct DeviceView: View {
                     Label("Technical Information", systemImage: "info.circle")
                 }
             }
-
-//            Section {
-//                Button("Unknown Command") { unknownCommand() }
-//            }
         }
         .navigationTitle(device.displayName)
         .navigationDestination(for: PairedDeviceDetailsRoute.self) { route in
@@ -67,7 +63,6 @@ struct DeviceView: View {
         }
         .deviceStatePolling(device.id)
         .suspendable(
-            asyncJobExecutor: tools.asyncJobExecutor,
             onResume: refresh
         )
         .refreshable(action: refresh)
@@ -83,12 +78,6 @@ struct DeviceView: View {
             async let requestPresets: Void = try await tools.deviceService.requestPresets(deviceId)
             
             _ = try await [ requestOutletSettings, requestPresets ]
-        }
-    }
-    
-    func unknownCommand() {
-        tools.submitJobWithErrorHandler {
-            try await tools.deviceService.unknownCommand(device.id)
         }
     }
 }

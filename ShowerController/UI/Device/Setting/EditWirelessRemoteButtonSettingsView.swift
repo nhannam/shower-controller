@@ -47,10 +47,10 @@ struct EditWirelessRemoteButtonSettingsView: View {
                 }
                 ToolbarItem(placement: .confirmationAction) {
                     Button("Done") {
-                        if !device.isStopped {
-                            isShowingConfirmation = true
+                        if device.isStopped {
+                            isSubmitted = true
                         } else {
-                            persist()
+                            isShowingConfirmation = true
                         }
                     }
                 }
@@ -58,7 +58,7 @@ struct EditWirelessRemoteButtonSettingsView: View {
             .deviceLockoutConfirmationDialog(
                 $isShowingConfirmation,
                 device: device,
-                confirmAction: persist
+                confirmAction: { isSubmitted = true }
             )
             .operationInProgress(isSubmitted)
             .navigationTitle("Remote Button")
@@ -69,11 +69,16 @@ struct EditWirelessRemoteButtonSettingsView: View {
                 dict[outlet.outletSlot] = outlet.isEnabledForWirelessRemoteButton
             }
         }
+        .task(id: isSubmitted) {
+            if isSubmitted {
+                await persist()
+                isSubmitted = false
+            }
+        }
     }
     
-    func persist() {
-        isSubmitted = true
-        tools.submitJobWithErrorHandler {
+    func persist() async {
+        await tools.alertOnError {
             let outletSlotsEnabled = outletsEnabled
                 .filter({ _, enabled in enabled })
                 .map({ outletSlot, _ in outletSlot})
@@ -83,8 +88,6 @@ struct EditWirelessRemoteButtonSettingsView: View {
                 wirelessRemoteButtonOutletsEnabled: outletSlotsEnabled
             )
             dismiss()
-        } finally: {
-            isSubmitted = false
         }
     }
 }

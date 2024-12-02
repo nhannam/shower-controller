@@ -57,7 +57,6 @@ class Toolbox {
     let bluetoothService: ManagedReentrancyBluetoothService
     let deviceService: DeviceService
     let clientService: ClientService
-    var asyncJobExecutor: AsyncJobExecutor = AsyncJobExecutor()
     var errorHandler: AlertingErrorHandler = AlertingErrorHandler()
     var navigationPath = NavigationPath()
 
@@ -72,26 +71,9 @@ class Toolbox {
         await errorHandler.alertOnError(job)
     }
     
-    func submitJob(_ job: @escaping @MainActor () async -> Void) {
-        asyncJobExecutor.submit(job)
-    }
-
-    func submitJobWithErrorHandler(
-        _ job: @escaping @MainActor () async throws -> Void,
-        finally: (@MainActor () -> Void)? = nil
-    ) {
-        submitJob {
-            await self.alertOnError(job)
-            finally?()
-        }
-    }
-    
     func startProcessing() async {
         Self.logger.debug("Starting async processing")
-        await withTaskGroup(of: Void.self) { group in
-            group.addTask(operation: bluetoothService.startProcessing)
-            group.addTask(operation: asyncJobExecutor.start)
-        }
+        await bluetoothService.startProcessing()
         Self.logger.debug("Finished async processing")
     }
     

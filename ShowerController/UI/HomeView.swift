@@ -44,8 +44,8 @@ struct HomeView: View {
         .navigationTitle("Shower Controller")
     }
     
-    func suspendProcessing() {
-        tools.submitJobWithErrorHandler {
+    func suspendProcessing() async {
+        await tools.alertOnError {
             try await tools.bluetoothService.disconnectAll()
         }
     }

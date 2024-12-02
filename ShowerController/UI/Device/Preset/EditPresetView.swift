@@ -10,6 +10,8 @@ import SwiftUI
 struct EditPresetView: View {
     private static let logger = LoggerFactory.logger(EditPresetView.self)
     
+    enum Action: Equatable { case deletePreset, persistPreset(makeDefault: Bool) }
+
     @Environment(\.dismiss) private var dismiss
     @Environment(Toolbox.self) private var tools
 
@@ -24,10 +26,10 @@ struct EditPresetView: View {
     @State private var targetTemperature: Double = 0
     @State private var durationSeconds: Int = 0
 
-    @State private var isShowingConfirmation =  false
-    @State private var confirmationAction: (() -> Void)?
-    @State private var isSubmitted =  false
-
+    @State private var isShowingConfirmation = false
+    @State private var pendingConfirmationAction: Action? = nil
+    @State private var action: Action? = nil
+    
     private var isNameValid: Bool {
         name.wholeMatch(of: /.{1, 16}/) != nil
     }
@@ -87,9 +89,9 @@ struct EditPresetView: View {
                 let isDefault = preset?.presetSlot == device.defaultPresetSlot
                 if !isDefault {
                     Section {
-                        Button("Make Default") { triggerAction({ persistPreset(makeDefault: true) }) }
+                        Button("Make Default") { triggerAction(.persistPreset(makeDefault: true)) }
                             .disabled(!isValid)
-                        Button("Delete", role: .destructive) { triggerAction({ deletePreset() }) }
+                        Button("Delete", role: .destructive) { triggerAction(.deletePreset) }
                     }
                 }
             }
@@ -98,7 +100,7 @@ struct EditPresetView: View {
                     Button("Cancel") { dismiss() }
                 }
                 ToolbarItem(placement: .confirmationAction) {
-                    Button("Done") { triggerAction({ persistPreset(makeDefault: false) }) }
+                    Button("Done") { triggerAction(.persistPreset(makeDefault: false)) }
                         .disabled(!isValid)
                 }
             }
@@ -107,7 +109,7 @@ struct EditPresetView: View {
                 device: device,
                 confirmAction: actionConfirmed
             )
-            .operationInProgress(isSubmitted)
+            .operationInProgress(action != nil)
             .navigationTitle("Preset")
             .navigationBarBackButtonHidden()
         }
@@ -122,25 +124,38 @@ struct EditPresetView: View {
                 targetTemperature = lastOutlet.minimumTemperature
             }
         }
+        .task(id: action) {
+            if let action {
+                switch action {
+                case .persistPreset(let makeDefault):
+                    await persistPreset(makeDefault: makeDefault)
+                    
+                case .deletePreset:
+                    await deletePreset()
+                }
+                
+                self.action = nil
+            }
+        }
     }
     
-    func triggerAction(_ action: @escaping () -> Void) {
-        if !device.isStopped {
-            confirmationAction = action
-            isShowingConfirmation = true
+    func triggerAction(_ action: Action) {
+        if device.isStopped {
+            self.action = action
         } else {
-            action()
+            pendingConfirmationAction = action
+            isShowingConfirmation = true
         }
     }
     
     func actionConfirmed() {
-        confirmationAction?()
-        confirmationAction = nil
+        action = pendingConfirmationAction
+        pendingConfirmationAction = nil
+        isShowingConfirmation = false
     }
     
-    func persistPreset(makeDefault: Bool) {
-        isSubmitted = true
-        tools.submitJobWithErrorHandler {
+    func persistPreset(makeDefault: Bool) async {
+        await tools.alertOnError {
             if let outlet {
                 if let preset {
                     try await tools.deviceService.updatePresetDetails(
@@ -164,19 +179,14 @@ struct EditPresetView: View {
                 }
             }
             dismiss()
-        } finally: {
-            isSubmitted = false
         }
     }
     
-    func deletePreset() {
+    func deletePreset() async{
         if let preset {
-            isSubmitted = true
-            tools.submitJobWithErrorHandler {
+            await tools.alertOnError {
                 try await tools.deviceService.deletePresetDetails(device.id, presetSlot: preset.presetSlot)
                 dismiss()
-            } finally: {
-                isSubmitted = false
             }
         }
     }

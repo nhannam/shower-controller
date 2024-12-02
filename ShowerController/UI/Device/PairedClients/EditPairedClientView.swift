@@ -25,7 +25,13 @@ struct EditPairedClientView: View {
                 Text(pairedClient.name)
                 
                 Section {
-                    Button("Unpair", role: .destructive, action: triggerUnpair)
+                    Button("Unpair", role: .destructive) {
+                        if device.isStopped {
+                            isSubmitted = true
+                        } else {
+                            isShowingConfirmation = true
+                        }
+                    }
                 }
             }
             .toolbar {
@@ -36,25 +42,22 @@ struct EditPairedClientView: View {
             .deviceLockoutConfirmationDialog(
                 $isShowingConfirmation,
                 device: device,
-                confirmAction: unpair
+                confirmAction: { isSubmitted = true }
             )
             .operationInProgress(isSubmitted)
             .navigationTitle("Paired Client")
             .navigationBarBackButtonHidden()
+            .task(id: isSubmitted) {
+                if isSubmitted {
+                    await unpair()
+                    isSubmitted = false
+                }
+            }
         }
     }
     
-    func triggerUnpair() {
-        if !device.isStopped {
-            isShowingConfirmation = true
-        } else {
-            unpair()
-        }
-    }
-
-    func unpair() {
-        isSubmitted = true
-        tools.submitJobWithErrorHandler {
+    func unpair() async {
+        await tools.alertOnError {
             let isCurrentClient = device.clientSlot == pairedClient.clientSlot
 
             try await tools.deviceService.unpair(device.id, clientSlot: pairedClient.clientSlot)
@@ -63,8 +66,6 @@ struct EditPairedClientView: View {
             if isCurrentClient {
                 tools.navigateHome()
             }
-        } finally: {
-            isSubmitted = false
         }
     }
 }

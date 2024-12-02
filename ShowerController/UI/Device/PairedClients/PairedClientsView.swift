@@ -32,7 +32,6 @@ struct PairedClientsView: View {
         .navigationTitle("Clients")
         .deviceStatePolling(device.id)
         .suspendable(
-            asyncJobExecutor: tools.asyncJobExecutor,
             onResume: refresh
         )
         .refreshable(action: refresh)

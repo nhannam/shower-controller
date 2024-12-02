@@ -53,7 +53,7 @@ struct EditClientView: View {
                     }
                 }
                 ToolbarItem(placement: .confirmationAction) {
-                    Button("Done", action: persist)
+                    Button("Done", action: { isSubmitted = true })
                         .disabled(!isNameValid)
                 }
             }
@@ -69,11 +69,16 @@ struct EditClientView: View {
                 name = UIDevice.current.name
             }
         }
+        .task(id: isSubmitted) {
+            if isSubmitted {
+                await persist()
+                isSubmitted = false
+            }
+        }
     }
     
-    func persist() {
-        isSubmitted = true
-        tools.submitJobWithErrorHandler {
+    func persist() async {
+        await tools.alertOnError {
             if let client {
                 try await tools.clientService.updateClientName(
                     clientId: client.clientId,
@@ -83,8 +88,6 @@ struct EditClientView: View {
                 try await tools.clientService.createClient(name: name)
             }
             dismiss()
-        } finally: {
-            isSubmitted = false
         }
     }
 }

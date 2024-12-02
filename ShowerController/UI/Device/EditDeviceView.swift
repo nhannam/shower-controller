@@ -44,7 +44,7 @@ struct EditDeviceView: View {
                         if !device.isStopped {
                             isShowingConfirmation = true
                         } else {
-                            persist()
+                            isSubmitted = true
                         }
                     }.disabled(!isNicknameValid)
                 }
@@ -52,22 +52,25 @@ struct EditDeviceView: View {
             .deviceLockoutConfirmationDialog(
                 $isShowingConfirmation,
                 device: device,
-                confirmAction: persist
+                confirmAction: { isSubmitted = true }
             )
             .operationInProgress(isSubmitted)
         }
         .task {
             nickname = device.nickname ?? ""
         }
+        .task(id: isSubmitted) {
+            if isSubmitted {
+                await persist()
+                isSubmitted = false
+            }
+        }
     }
     
-    func persist() {
-        isSubmitted = true
-        tools.submitJobWithErrorHandler {
+    func persist() async {
+        await tools.alertOnError {
             try await tools.deviceService.updateNickname(device.id, nickname: nickname)
             dismiss()
-        } finally: {
-            isSubmitted = false
         }
     }
 }

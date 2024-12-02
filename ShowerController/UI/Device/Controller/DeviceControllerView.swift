@@ -16,9 +16,9 @@ struct DeviceControllerView: View {
     var device: Device
     
     @State private var temperature: Double = Device.permittedTemperatureRange.lowerBound
+    @State private var submittedTemperature: Double? = nil
 
     @State private var isEditingTemperature = false
-    @State private var isSubmitted = false
     
     var displayTemperature: Double {
         if device.isWaterFlowing {
@@ -62,7 +62,7 @@ struct DeviceControllerView: View {
                             permittedRange: activeOutlet.temperatureRange ?? Device.permittedTemperatureRange,
                             onEditingChanged: { editing in
                                 if (!editing) {
-                                    onTemperatureSelected(temperature: temperature)
+                                    submittedTemperature = temperature
                                 }
                                 isEditingTemperature = editing
                             }
@@ -70,7 +70,7 @@ struct DeviceControllerView: View {
                         
                         Group {
                             var isCold: Bool {
-                                if isEditingTemperature || isSubmitted || !device.isWaterFlowing {
+                                if isEditingTemperature || submittedTemperature != nil || !device.isWaterFlowing {
                                     device.getRunningStateForTemperature(
                                         temperature: temperature,
                                         outlet: activeOutlet
@@ -99,17 +99,20 @@ struct DeviceControllerView: View {
         .onChange(of: displayTemperature, initial: true) { _, newValue in
             temperature = newValue
         }
+        .task(id: submittedTemperature) {
+            if let submittedTemperature {
+                await updatedSelectedTemperature(temperature: submittedTemperature)
+                self.submittedTemperature = nil
+            }
+        }
     }
     
-    func onTemperatureSelected(temperature: Double) {
-        isSubmitted = true
-        tools.submitJobWithErrorHandler {
+    func updatedSelectedTemperature(temperature: Double) async {
+        await tools.alertOnError {
             try await tools.deviceService.updateSelectedTemperature(
                 device.id,
                 targetTemperature: temperature
             )
-        } finally: {
-            isSubmitted = false
         }
     }
 }

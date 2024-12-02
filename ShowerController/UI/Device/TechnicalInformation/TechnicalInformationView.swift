@@ -72,7 +72,6 @@ struct TechnicalInformationView: View {
         .navigationTitle("Technical Information")
         .deviceStatePolling(device.id)
         .suspendable(
-            asyncJobExecutor: tools.asyncJobExecutor,
             onResume: refresh
         )
         .refreshable(action: refresh)

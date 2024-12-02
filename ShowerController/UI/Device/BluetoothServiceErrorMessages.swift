@@ -17,8 +17,10 @@ extension BluetoothServiceError: LocalizedError {
         case .notificationNotReceived:
             "Device Not Responding"
         case .timedOut:
-            "Timed Out"
-        default:
+            "Operation Timed Out"
+        case .cancelled:
+            "Operation Cancelled"
+        case .alreadyScanning, .internalError:
             "Uncategorized Error"
         }
     }

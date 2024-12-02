@@ -33,18 +33,23 @@ struct PairingView: View {
             .navigationTitle("Pair Shower")
         }
         .suspendable(
-            asyncJobExecutor: tools.asyncJobExecutor,
-            onSuspend: stopScan,
-            onResume: startScan
+            onSuspend: { isScanning = false },
+            onResume: { isScanning = true }
         )
-        .onDisappear(perform: { tools.submitJob(stopScan) })
+        .onDisappear(perform: { isScanning = false })
         .task(startScan)
+        .task(id: isScanning) {
+            if isScanning {
+                await startScan()
+            } else {
+                await stopScan()
+            }
+        }
     }
     
     func startScan() async {
         await tools.alertOnError {
             await stopScan()
-            isScanning = true
             try await tools.bluetoothService.disconnectAll()
             try await tools.bluetoothService.startScan()
         }
@@ -55,7 +60,6 @@ struct PairingView: View {
         await tools.alertOnError {
             Self.logger.debug("PairingView stopping scan")
             try await tools.bluetoothService.stopScan()
-            isScanning = false
         }
     }
 }

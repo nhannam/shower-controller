@@ -11,6 +11,8 @@ import SwiftData
 struct SettingsView: View {
     private static let logger = LoggerFactory.logger(SettingsView.self)
     
+    enum Action: Equatable { case restart, factoryReset }
+
     @Environment(Toolbox.self) private var tools
 
     var device: Device
@@ -20,8 +22,8 @@ struct SettingsView: View {
     @State private var editingWirelessRemoteButtonSettings = false
     
     @State private var isShowingConfirmation =  false
-    @State private var confirmationAction: (() -> Void)?
-    @State private var isSubmitted =  false
+    @State private var pendingConfirmationAction: Action? = nil
+    @State private var action: Action? = nil
 
     var body: some View {
         List {
@@ -47,8 +49,8 @@ struct SettingsView: View {
             }
             
             Section("Device") {
-                Button("Restart Device") { triggerAction(restartDevice) }
-                Button("Factory Reset") { triggerAction(factoryReset) }
+                Button("Restart Device") { triggerAction(.restart) }
+                Button("Factory Reset") { triggerAction(.factoryReset) }
             }
         }
         .sheet(item: $selectedOutlet) { outlet in
@@ -61,14 +63,29 @@ struct SettingsView: View {
             isPresented: $editingWirelessRemoteButtonSettings) {
             EditWirelessRemoteButtonSettingsView(device: device)
         }
+        .deviceLockoutConfirmationDialog(
+            $isShowingConfirmation,
+            device: device,
+            confirmAction: actionConfirmed
+        )
         .navigationTitle("Settings")
         .deviceStatePolling(device.id)
         .suspendable(
-            asyncJobExecutor: tools.asyncJobExecutor,
             onResume: refresh
         )
         .refreshable(action: refresh)
         .task(refresh)
+        .task(id: action) {
+            if let action {
+                switch action {
+                case .restart:
+                    await restartDevice()
+                case .factoryReset:
+                    await factoryReset()
+                }
+                self.action = nil
+            }
+        }
     }
     
     func refresh() async {
@@ -78,36 +95,30 @@ struct SettingsView: View {
         }
     }
     
-    func triggerAction(_ action: @escaping () -> Void) {
-        if !device.isStopped {
-            confirmationAction = action
-            isShowingConfirmation = true
+    func triggerAction(_ action: Action) {
+        if device.isStopped {
+            self.action = action
         } else {
-            action()
+            pendingConfirmationAction = action
+            isShowingConfirmation = true
         }
     }
     
     func actionConfirmed() {
-        confirmationAction?()
-        confirmationAction = nil
+        action = pendingConfirmationAction
+        pendingConfirmationAction = nil
     }
     
 
-    func restartDevice() {
-        isSubmitted = true
-        tools.submitJobWithErrorHandler {
+    func restartDevice() async {
+        await tools.alertOnError {
             try await tools.deviceService.restartDevice(device.id)
-        } finally: {
-            isSubmitted = false
         }
     }
     
-    func factoryReset() {
-        isSubmitted = true
-        tools.submitJobWithErrorHandler {
+    func factoryReset() async {
+        await tools.alertOnError {
             try await tools.deviceService.factoryReset(device.id)
-        } finally: {
-            isSubmitted = false
         }
     }
 }

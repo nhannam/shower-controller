@@ -38,7 +38,7 @@ struct EditControllerSettingsView: View {
                         if !device.isStopped {
                             isShowingConfirmation = true
                         } else {
-                            persist()
+                            isSubmitted = true
                         }
                     }
                 }
@@ -46,7 +46,7 @@ struct EditControllerSettingsView: View {
             .deviceLockoutConfirmationDialog(
                 $isShowingConfirmation,
                 device: device,
-                confirmAction: persist
+                confirmAction: { isSubmitted = true }
             )
             .operationInProgress(isSubmitted)
             .navigationTitle("Controller")
@@ -56,19 +56,22 @@ struct EditControllerSettingsView: View {
             standbyLightingEnabled = device.standbyLightingEnabled
             outletsSwitched = device.outletsSwitched
         }
+        .task(id: isSubmitted) {
+            if isSubmitted {
+                await persist()
+                isSubmitted = false
+            }
+        }
     }
     
-    func persist() {
-        isSubmitted = true
-        tools.submitJobWithErrorHandler {
+    func persist() async {
+        await tools.alertOnError {
             try await tools.deviceService.updateControllerSettings(
                 device.id,
                 standbyLightingEnabled: standbyLightingEnabled,
                 outletsSwitched: outletsSwitched
             )
             dismiss()
-        } finally: {
-            isSubmitted = false
         }
     }
 }

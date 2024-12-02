@@ -23,6 +23,7 @@ struct DeviceStatePollingModifier: ViewModifier {
 
 
     @State private var timer = Timer.publish(every: POLL_FREQUENCY, on: .main, in: .common).autoconnect()
+    @State private var pollTime: Date = Date()
     
     var deviceId: UUID
     
@@ -49,52 +50,44 @@ struct DeviceStatePollingModifier: ViewModifier {
             }
             .onReceive(timer) { time in
                 Self.logger.debug("timer \(time)")
-                maybePollState()
+                if pollingState != .awaitResponse {
+                    pollTime = time
+                }
             }
             .toolbar {
                 ToolbarItem(placement: .status) {
                     Button(
-                        action: startPolling,
+                        action: {},
                         label: { Image(systemName: "antenna.radiowaves.left.and.right.circle") }
                     )
                     .tint(stausColour)
                 }
             }
-            .task(startPolling)
-            
+            .task(id: pollTime) {
+                Self.logger.debug("Requesting device state")
+                pollingState = .awaitResponse
+
+                do {
+                    try await tools.deviceService.requestState(deviceId)
+                    pollingState = .ok
+                } catch BluetoothServiceError.cancelled {
+                    pollingState = .start
+                } catch {
+                    pollingState = .failed
+                }
+            }
     }
 
-    func startPolling() {
-        pollingState = .start
-    }
-    
     func startTimer() {
         Self.logger.debug("timer starting")
         timer.upstream.connect().cancel()
-        maybePollState()
+        pollTime = Date()
         timer = Timer.publish(every: Self.POLL_FREQUENCY, on: .main, in: .common).autoconnect()
     }
 
     func stopTimer() {
         Self.logger.debug("timer stopping")
         timer.upstream.connect().cancel()
-    }
-    
-    
-    func maybePollState() {
-        if (pollingState != .awaitResponse) {
-            Self.logger.debug("Requesting device state")
-            pollingState = .awaitResponse
-
-            tools.submitJob {
-                do {
-                    try await tools.deviceService.requestState(deviceId)
-                    pollingState = .ok
-                } catch {
-                    pollingState = .failed
-                }
-            }
-        }
     }
 }
 
