@@ -6,7 +6,6 @@
 //
 
 import SwiftUI
-import SwiftData
 import Combine
 
 struct DeviceStatePollingModifier: ViewModifier {
@@ -30,7 +29,7 @@ struct DeviceStatePollingModifier: ViewModifier {
     func body(content: Content) -> some View {
         content
             .suspendable(
-                onSuspend: stopTimer,
+                onSuspend: suspend,
                 onResume: startTimer
             )
             .onAppear(perform: startTimer)
@@ -88,6 +87,15 @@ struct DeviceStatePollingModifier: ViewModifier {
     func stopTimer() {
         Self.logger.debug("timer stopping")
         timer.upstream.connect().cancel()
+    }
+    
+    func suspend() async {
+        stopTimer()
+        do {
+            try await tools.bluetoothService.disconnect(deviceId)
+        } catch {
+            Self.logger.warning("Failed to disconnect device")
+        }
     }
 }
 

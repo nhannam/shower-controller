@@ -6,7 +6,6 @@
 //
 
 import SwiftUI
-import SwiftData
 
 struct PairingView: View {
     private static let logger = LoggerFactory.logger(PairingView.self)
@@ -14,6 +13,7 @@ struct PairingView: View {
     @Environment(\.dismiss) private var dismiss
     @Environment(Toolbox.self) private var tools
 
+    @State private var errorHandler = ErrorHandler()
     @State private var isScanning = false
 
     var body: some View {
@@ -37,6 +37,7 @@ struct PairingView: View {
             onResume: { isScanning = true }
         )
         .onDisappear(perform: { isScanning = false })
+        .alertingErrorHandler(errorHandler)
         .task(startScan)
         .task(id: isScanning) {
             if isScanning {
@@ -48,7 +49,7 @@ struct PairingView: View {
     }
     
     func startScan() async {
-        await tools.alertOnError {
+        await errorHandler.handleError {
             await stopScan()
             try await tools.bluetoothService.disconnectAll()
             try await tools.bluetoothService.startScan()
@@ -57,7 +58,7 @@ struct PairingView: View {
     }
     
     func stopScan() async {
-        await tools.alertOnError {
+        await errorHandler.handleError {
             Self.logger.debug("PairingView stopping scan")
             try await tools.bluetoothService.stopScan()
         }

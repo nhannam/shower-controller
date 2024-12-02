@@ -6,7 +6,6 @@
 //
 
 import SwiftUI
-import SwiftData
 
 struct PairDeviceButton: View {
     private static let logger = LoggerFactory.logger(PairDeviceButton.self)
@@ -15,6 +14,7 @@ struct PairDeviceButton: View {
 
     var scanResult: ScanResult
     
+    @State private var errorHandler = ErrorHandler()
     @State private var isSubmitted = false
 
     var body: some View {
@@ -34,6 +34,7 @@ struct PairDeviceButton: View {
             }
         )
         .disabled(isSubmitted)
+        .alertingErrorHandler(errorHandler)
         .task(id: isSubmitted) {
             if isSubmitted {
                 await startPairing()
@@ -44,7 +45,7 @@ struct PairDeviceButton: View {
     }
     
     func startPairing() async {
-        await tools.alertOnError {
+        await errorHandler.handleError {
             try await tools.deviceService.pair(scanResult.id)
         }
     }

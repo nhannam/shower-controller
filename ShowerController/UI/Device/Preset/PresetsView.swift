@@ -6,7 +6,6 @@
 //
 
 import SwiftUI
-import SwiftData
 
 struct PresetsView: View {
     private static let logger = LoggerFactory.logger(PresetsView.self)
@@ -17,6 +16,7 @@ struct PresetsView: View {
     
     @State private var selected: Preset?
     @State private var isEditing = false
+    @State private var errorHandler = ErrorHandler()
 
     var body: some View {
         List {
@@ -48,6 +48,7 @@ struct PresetsView: View {
         }
         .navigationTitle("Presets")
         .deviceStatePolling(device.id)
+        .alertingErrorHandler(errorHandler)
         .suspendable(
             onResume: refresh
         )
@@ -56,7 +57,7 @@ struct PresetsView: View {
     }
     
     func refresh() async {
-        await tools.alertOnError {
+        await errorHandler.handleError {
             try await tools.deviceService.requestOutletSettings(device.id)
             try await tools.deviceService.requestPresets(device.id)
         }

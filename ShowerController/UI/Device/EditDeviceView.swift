@@ -17,6 +17,7 @@ struct EditDeviceView: View {
     
     @State private var nickname: String = ""
     
+    @State private var errorHandler = ErrorHandler()
     @State private var isShowingConfirmation =  false
     @State private var isSubmitted =  false
 
@@ -41,10 +42,10 @@ struct EditDeviceView: View {
                 }
                 ToolbarItem(placement: .confirmationAction) {
                     Button("Done") {
-                        if !device.isStopped {
-                            isShowingConfirmation = true
-                        } else {
+                        if device.isStopped {
                             isSubmitted = true
+                        } else {
+                            isShowingConfirmation = true
                         }
                     }.disabled(!isNicknameValid)
                 }
@@ -55,20 +56,21 @@ struct EditDeviceView: View {
                 confirmAction: { isSubmitted = true }
             )
             .operationInProgress(isSubmitted)
-        }
-        .task {
-            nickname = device.nickname ?? ""
-        }
-        .task(id: isSubmitted) {
-            if isSubmitted {
-                await persist()
-                isSubmitted = false
+            .alertingErrorHandler(errorHandler)
+            .task {
+                nickname = device.nickname ?? ""
+            }
+            .task(id: isSubmitted) {
+                if isSubmitted {
+                    await persist()
+                    isSubmitted = false
+                }
             }
         }
     }
     
     func persist() async {
-        await tools.alertOnError {
+        await errorHandler.handleError {
             try await tools.deviceService.updateNickname(device.id, nickname: nickname)
             dismiss()
         }

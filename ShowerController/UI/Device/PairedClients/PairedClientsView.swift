@@ -6,7 +6,6 @@
 //
 
 import SwiftUI
-import SwiftData
 
 struct PairedClientsView: View {
     private static let logger = LoggerFactory.logger(PairedClientsView.self)
@@ -15,6 +14,7 @@ struct PairedClientsView: View {
 
     var device: Device
 
+    @State private var errorHandler = ErrorHandler()
     @State private var selected: PairedClient?
 
     var body: some View {
@@ -30,6 +30,7 @@ struct PairedClientsView: View {
             EditPairedClientView(device: device, pairedClient: pairedClient)
         }
         .navigationTitle("Clients")
+        .alertingErrorHandler(errorHandler)
         .deviceStatePolling(device.id)
         .suspendable(
             onResume: refresh
@@ -39,7 +40,7 @@ struct PairedClientsView: View {
     }
     
     func refresh() async {
-        await tools.alertOnError {
+        await errorHandler.handleError {
             try await tools.deviceService.requestPairedClients(device.id)
         }
     }

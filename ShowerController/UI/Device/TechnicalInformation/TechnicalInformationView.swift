@@ -6,7 +6,6 @@
 //
 
 import SwiftUI
-import SwiftData
 
 struct TechnicalInformationView: View {
     private static let logger = LoggerFactory.logger(SettingsView.self)
@@ -14,7 +13,9 @@ struct TechnicalInformationView: View {
     @Environment(Toolbox.self) private var tools
     
     var device: Device
-    
+
+    @State private var errorHandler = ErrorHandler()
+
     func makeItem(label: String, value: String) -> some View {
         HStack {
             Text(label)
@@ -70,6 +71,7 @@ struct TechnicalInformationView: View {
             }
         }
         .navigationTitle("Technical Information")
+        .alertingErrorHandler(errorHandler)
         .deviceStatePolling(device.id)
         .suspendable(
             onResume: refresh
@@ -79,7 +81,7 @@ struct TechnicalInformationView: View {
     }
     
     func refresh() async {
-        await tools.alertOnError {
+        await errorHandler.handleError {
             try await tools.deviceService.requestTechnicalInformation(device.id)
         }
     }

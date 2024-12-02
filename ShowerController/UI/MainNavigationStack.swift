@@ -6,7 +6,6 @@
 //
 
 import SwiftUI
-import SwiftData
 
 struct MainNavigationStack: View {
     private static let logger = LoggerFactory.logger(MainNavigationStack.self)
@@ -30,6 +29,5 @@ struct MainNavigationStack: View {
         }
         .environment(tools)
         .monitorModelContextTransactions()
-        .alertingErrorHandler(tools.errorHandler)
     }
 }

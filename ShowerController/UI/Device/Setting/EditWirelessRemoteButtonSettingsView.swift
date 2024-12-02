@@ -17,6 +17,7 @@ struct EditWirelessRemoteButtonSettingsView: View {
 
     @State private var outletsEnabled: [Int:Bool] = [:]
 
+    @State private var errorHandler = ErrorHandler()
     @State private var isShowingConfirmation =  false
     @State private var isSubmitted =  false
 
@@ -30,7 +31,7 @@ struct EditWirelessRemoteButtonSettingsView: View {
                             set: { enabled in outletsEnabled[outlet.outletSlot] = enabled }
                         )
                     }
-                           
+                    
                     Toggle(
                         isOn: binding,
                         label: {
@@ -61,24 +62,25 @@ struct EditWirelessRemoteButtonSettingsView: View {
                 confirmAction: { isSubmitted = true }
             )
             .operationInProgress(isSubmitted)
+            .alertingErrorHandler(errorHandler)
             .navigationTitle("Remote Button")
             .navigationBarBackButtonHidden()
-        }
-        .task {
-            outletsEnabled = device.outletsSortedBySlot.reduce(into: [Int: Bool]()) { dict, outlet in
-                dict[outlet.outletSlot] = outlet.isEnabledForWirelessRemoteButton
+            .task {
+                outletsEnabled = device.outletsSortedBySlot.reduce(into: [Int: Bool]()) { dict, outlet in
+                    dict[outlet.outletSlot] = outlet.isEnabledForWirelessRemoteButton
+                }
             }
-        }
-        .task(id: isSubmitted) {
-            if isSubmitted {
-                await persist()
-                isSubmitted = false
+            .task(id: isSubmitted) {
+                if isSubmitted {
+                    await persist()
+                    isSubmitted = false
+                }
             }
         }
     }
     
     func persist() async {
-        await tools.alertOnError {
+        await errorHandler.handleError {
             let outletSlotsEnabled = outletsEnabled
                 .filter({ _, enabled in enabled })
                 .map({ outletSlot, _ in outletSlot})

@@ -57,7 +57,6 @@ class Toolbox {
     let bluetoothService: ManagedReentrancyBluetoothService
     let deviceService: DeviceService
     let clientService: ClientService
-    var errorHandler: AlertingErrorHandler = AlertingErrorHandler()
     var navigationPath = NavigationPath()
 
     init(modelContainer: ModelContainer, bluetoothService: ManagedReentrancyBluetoothService) {
@@ -65,10 +64,6 @@ class Toolbox {
         self.bluetoothService = bluetoothService
         self.deviceService = DeviceService(modelContainer: modelContainer, bluetoothService: bluetoothService)
         self.clientService = ClientService(modelContainer: modelContainer)
-    }
-    
-    func alertOnError(_ job: @escaping @MainActor () async throws -> Void) async {
-        await errorHandler.alertOnError(job)
     }
     
     func startProcessing() async {

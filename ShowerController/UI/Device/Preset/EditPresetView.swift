@@ -26,6 +26,7 @@ struct EditPresetView: View {
     @State private var targetTemperature: Double = 0
     @State private var durationSeconds: Int = 0
 
+    @State private var errorHandler = ErrorHandler()
     @State private var isShowingConfirmation = false
     @State private var pendingConfirmationAction: Action? = nil
     @State private var action: Action? = nil
@@ -53,7 +54,7 @@ struct EditPresetView: View {
                 if let outlet {
                     OutletPicker(outlets: device.outletsSortedBySlot, selected: $outlet)
                         .pickerStyle(.segmented)
-
+                    
                     if let temperatureRange = outlet.temperatureRange {
                         VStack {
                             Label("Temperature", systemImage: "thermometer")
@@ -63,7 +64,7 @@ struct EditPresetView: View {
                                     permittedRange: temperatureRange
                                 )
                                 .frame(width: 200, height: 200)
-
+                                
                                 TemperatureText(temperature: targetTemperature)
                                     .font(.largeTitle)
                             }
@@ -85,7 +86,7 @@ struct EditPresetView: View {
                     )
                     .frame(maxWidth: .infinity, alignment: .center)
                 }
-
+                
                 let isDefault = preset?.presetSlot == device.defaultPresetSlot
                 if !isDefault {
                     Section {
@@ -110,31 +111,32 @@ struct EditPresetView: View {
                 confirmAction: actionConfirmed
             )
             .operationInProgress(action != nil)
+            .alertingErrorHandler(errorHandler)
             .navigationTitle("Preset")
             .navigationBarBackButtonHidden()
-        }
-        .task {
-            if let preset {
-                name = preset.name
-                outlet = preset.outlet
-                targetTemperature = preset.targetTemperature
-                durationSeconds = preset.durationSeconds
-            } else if let lastOutlet = device.outletsSortedBySlot.last {
-                outlet = lastOutlet
-                targetTemperature = lastOutlet.minimumTemperature
-            }
-        }
-        .task(id: action) {
-            if let action {
-                switch action {
-                case .persistPreset(let makeDefault):
-                    await persistPreset(makeDefault: makeDefault)
-                    
-                case .deletePreset:
-                    await deletePreset()
+            .task {
+                if let preset {
+                    name = preset.name
+                    outlet = preset.outlet
+                    targetTemperature = preset.targetTemperature
+                    durationSeconds = preset.durationSeconds
+                } else if let lastOutlet = device.outletsSortedBySlot.last {
+                    outlet = lastOutlet
+                    targetTemperature = lastOutlet.minimumTemperature
                 }
-                
-                self.action = nil
+            }
+            .task(id: action) {
+                if let action {
+                    switch action {
+                    case .persistPreset(let makeDefault):
+                        await persistPreset(makeDefault: makeDefault)
+                        
+                    case .deletePreset:
+                        await deletePreset()
+                    }
+                    
+                    self.action = nil
+                }
             }
         }
     }
@@ -155,7 +157,7 @@ struct EditPresetView: View {
     }
     
     func persistPreset(makeDefault: Bool) async {
-        await tools.alertOnError {
+        await errorHandler.handleError {
             if let outlet {
                 if let preset {
                     try await tools.deviceService.updatePresetDetails(
@@ -184,7 +186,7 @@ struct EditPresetView: View {
     
     func deletePreset() async{
         if let preset {
-            await tools.alertOnError {
+            await errorHandler.handleError {
                 try await tools.deviceService.deletePresetDetails(device.id, presetSlot: preset.presetSlot)
                 dismiss()
             }

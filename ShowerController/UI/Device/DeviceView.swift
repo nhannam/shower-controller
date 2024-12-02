@@ -6,13 +6,13 @@
 //
 
 import SwiftUI
-import SwiftData
 
 struct DeviceView: View {
     private static let logger = LoggerFactory.logger(DeviceView.self)
     
     @Environment(Toolbox.self) private var tools
 
+    @State private var errorHandler = ErrorHandler()
     @State private var isEditing = false
 
     var device: Device
@@ -65,12 +65,13 @@ struct DeviceView: View {
         .suspendable(
             onResume: refresh
         )
+        .alertingErrorHandler(errorHandler)
         .refreshable(action: refresh)
         .task(refresh)
     }
     
     func refresh() async {
-        await tools.alertOnError {
+        await errorHandler.handleError {
             let deviceId = device.id
             try await tools.deviceService.requestDeviceDetails(deviceId)
             

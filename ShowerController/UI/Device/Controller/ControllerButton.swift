@@ -6,7 +6,6 @@
 //
 
 import SwiftUI
-import SwiftData
 
 struct ControllerButton: View {
     enum Action: Equatable { case toggleOutlet, startPreset(_ presetSlot: UInt8) }
@@ -16,6 +15,7 @@ struct ControllerButton: View {
     var device: Device
     var userInterfaceButton: UserInterfaceButton
     
+    @State private var errorHandler = ErrorHandler()
     @State private var isShowingPresetSelector = false
     @State private var action: Action? = nil
 
@@ -52,14 +52,17 @@ struct ControllerButton: View {
                 )
             }
         }
+        .alertingErrorHandler(errorHandler)
         .task(id: action) {
             if let action {
-                switch action {
-                case .toggleOutlet:
-                    await toggleOutlet()
-                    
-                case .startPreset(let presetSlot):
-                    await startPreset(presetSlot)
+                await errorHandler.handleError {
+                    switch action {
+                    case .toggleOutlet:
+                        try await toggleOutlet()
+                        
+                    case .startPreset(let presetSlot):
+                        try await startPreset(presetSlot)
+                    }
                 }
 
                 self.action = nil
@@ -67,34 +70,30 @@ struct ControllerButton: View {
         }
     }
     
-    func toggleOutlet() async {
-        await tools.alertOnError {
-            if outlet.isRunning {
-                try await tools.deviceService.pauseOutlets(device.id)
-            } else {
-                switch userInterfaceButton.start {
-                case .outlet:
-                    try await tools.deviceService.startOutlet(
+    func toggleOutlet() async throws {
+        if outlet.isRunning {
+            try await tools.deviceService.pauseOutlets(device.id)
+        } else {
+            switch userInterfaceButton.start {
+            case .outlet:
+                try await tools.deviceService.startOutlet(
+                    device.id,
+                    outletSlot: outlet.outletSlot
+                )
+                
+            case .preset:
+                if let defaultPreset = device.defaultPreset {
+                    try await tools.deviceService.startPreset(
                         device.id,
-                        outletSlot: outlet.outletSlot
+                        presetSlot: defaultPreset.presetSlot
                     )
-                    
-                case .preset:
-                    if let defaultPreset = device.defaultPreset {
-                        try await tools.deviceService.startPreset(
-                            device.id,
-                            presetSlot: defaultPreset.presetSlot
-                        )
-                    }
                 }
             }
         }
     }
 
-    func startPreset(_ presetSlot: UInt8) async {
-        await tools.alertOnError {
-            try await tools.deviceService.startPreset(device.id, presetSlot: presetSlot)
-        }
+    func startPreset(_ presetSlot: UInt8) async throws {
+        try await tools.deviceService.startPreset(device.id, presetSlot: presetSlot)
     }
 }
 

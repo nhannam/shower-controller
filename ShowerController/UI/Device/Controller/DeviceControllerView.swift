@@ -6,7 +6,6 @@
 //
 
 import SwiftUI
-import SwiftData
 
 struct DeviceControllerView: View {
     private static let logger = LoggerFactory.logger(DeviceControllerView.self)
@@ -18,6 +17,7 @@ struct DeviceControllerView: View {
     @State private var temperature: Double = Device.permittedTemperatureRange.lowerBound
     @State private var submittedTemperature: Double? = nil
 
+    @State private var errorHandler = ErrorHandler()
     @State private var isEditingTemperature = false
     
     var displayTemperature: Double {
@@ -99,6 +99,7 @@ struct DeviceControllerView: View {
         .onChange(of: displayTemperature, initial: true) { _, newValue in
             temperature = newValue
         }
+        .alertingErrorHandler(errorHandler)
         .task(id: submittedTemperature) {
             if let submittedTemperature {
                 await updatedSelectedTemperature(temperature: submittedTemperature)
@@ -108,7 +109,7 @@ struct DeviceControllerView: View {
     }
     
     func updatedSelectedTemperature(temperature: Double) async {
-        await tools.alertOnError {
+        await errorHandler.handleError {
             try await tools.deviceService.updateSelectedTemperature(
                 device.id,
                 targetTemperature: temperature

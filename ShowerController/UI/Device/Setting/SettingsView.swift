@@ -6,7 +6,6 @@
 //
 
 import SwiftUI
-import SwiftData
 
 struct SettingsView: View {
     private static let logger = LoggerFactory.logger(SettingsView.self)
@@ -21,6 +20,7 @@ struct SettingsView: View {
     @State private var editingControllerSettings = false
     @State private var editingWirelessRemoteButtonSettings = false
     
+    @State private var errorHandler = ErrorHandler()
     @State private var isShowingConfirmation =  false
     @State private var pendingConfirmationAction: Action? = nil
     @State private var action: Action? = nil
@@ -59,8 +59,7 @@ struct SettingsView: View {
         .sheet(isPresented: $editingControllerSettings) {
             EditControllerSettingsView(device: device)
         }
-        .sheet(
-            isPresented: $editingWirelessRemoteButtonSettings) {
+        .sheet(isPresented: $editingWirelessRemoteButtonSettings) {
             EditWirelessRemoteButtonSettingsView(device: device)
         }
         .deviceLockoutConfirmationDialog(
@@ -68,6 +67,7 @@ struct SettingsView: View {
             device: device,
             confirmAction: actionConfirmed
         )
+        .alertingErrorHandler(errorHandler)
         .navigationTitle("Settings")
         .deviceStatePolling(device.id)
         .suspendable(
@@ -89,7 +89,7 @@ struct SettingsView: View {
     }
     
     func refresh() async {
-        await tools.alertOnError {
+        await errorHandler.handleError {
             try await tools.deviceService.requestOutletSettings(device.id)
             try await tools.deviceService.requestSettings(device.id)
         }
@@ -111,13 +111,13 @@ struct SettingsView: View {
     
 
     func restartDevice() async {
-        await tools.alertOnError {
+        await errorHandler.handleError {
             try await tools.deviceService.restartDevice(device.id)
         }
     }
     
     func factoryReset() async {
-        await tools.alertOnError {
+        await errorHandler.handleError {
             try await tools.deviceService.factoryReset(device.id)
         }
     }

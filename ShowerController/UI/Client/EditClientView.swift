@@ -17,6 +17,7 @@ struct EditClientView: View {
     
     @State private var name: String = ""
 
+    @State private var errorHandler = ErrorHandler()
     @State private var isSubmitted =  false
 
     private var isNameValid: Bool {
@@ -58,27 +59,28 @@ struct EditClientView: View {
                 }
             }
             .operationInProgress(isSubmitted)
+            .alertingErrorHandler(errorHandler)
             .navigationTitle("Application")
             .navigationBarBackButtonHidden()
             .interactiveDismissDisabled(createRequired)
-        }
-        .task {
-            if let client {
-                name = client.name
-            } else {
-                name = UIDevice.current.name
+            .task {
+                if let client {
+                    name = client.name
+                } else {
+                    name = UIDevice.current.name
+                }
             }
-        }
-        .task(id: isSubmitted) {
-            if isSubmitted {
-                await persist()
-                isSubmitted = false
+            .task(id: isSubmitted) {
+                if isSubmitted {
+                    await persist()
+                    isSubmitted = false
+                }
             }
         }
     }
     
     func persist() async {
-        await tools.alertOnError {
+        await errorHandler.handleError {
             if let client {
                 try await tools.clientService.updateClientName(
                     clientId: client.clientId,

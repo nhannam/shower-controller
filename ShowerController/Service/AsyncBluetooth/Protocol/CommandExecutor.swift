@@ -23,6 +23,8 @@ extension CommandExecutor: DeviceCommandVisitor {
     typealias Response = DeviceNotification
     
     private func writeData(isolation: isolated (any Actor)? = #isolation, payloadWithCrc: Data) async throws {
+        try Task.checkCancellation()
+
         var startIndex = 0
         
         let totalBytes = payloadWithCrc.count
@@ -40,6 +42,8 @@ extension CommandExecutor: DeviceCommandVisitor {
     }
 
     private func writeData(isolation: isolated (any Actor)? = #isolation, _ payload: Data, command: DeviceCommand, clientSlot: UInt8, clientSecret: Data) async throws -> DeviceNotification {
+        try Task.checkCancellation()
+
         let dataAccumulator = DataAccumulator(clientSlot: clientSlot)
         let notificationParser = NotificationParser(peripheral: peripheral, command: command)
 

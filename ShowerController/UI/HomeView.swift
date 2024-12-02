@@ -6,13 +6,13 @@
 //
 
 import SwiftUI
-import SwiftData
 
 struct HomeView: View {
     private static let logger = LoggerFactory.logger(HomeView.self)
 
     @Environment(Toolbox.self) private var tools
     
+    @State private var errorHandler = ErrorHandler()
     @State private var showPairing = false
     
     var body: some View {
@@ -26,6 +26,7 @@ struct HomeView: View {
                 PairedDeviceSectionView()
             }
         }
+        .alertingErrorHandler(errorHandler)
         .suspendable(onSuspend: suspendProcessing)
         .toolbar {
             ToolbarItem {
@@ -45,7 +46,7 @@ struct HomeView: View {
     }
     
     func suspendProcessing() async {
-        await tools.alertOnError {
+        await errorHandler.handleError {
             try await tools.bluetoothService.disconnectAll()
         }
     }

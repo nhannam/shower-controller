@@ -10,42 +10,47 @@ import SwiftUI
 
 @Observable
 @MainActor
-class AlertingErrorHandler {
-    private static let logger = LoggerFactory.logger(AlertingErrorHandler.self)
+class ErrorHandler {
+    private static let logger = LoggerFactory.logger(ErrorHandler.self)
     
     enum WrappedError: LocalizedError {
         case wrapped(error: Error)
     }
 
     fileprivate var localizedError: (any LocalizedError)? = nil
-    fileprivate var showError = false
     
-    func alertOnError(_ job: @escaping @MainActor () async throws -> Void) async {
+    func handleError(_ job: @escaping @MainActor () async throws -> Void) async {
         do {
             try await job()
             localizedError = nil
-        } catch BluetoothServiceError.cancelled {
-            Self.logger.info("Bluetooth operation cancelled")
+        } catch BluetoothServiceError.cancelled, DeviceServiceError.cancelled {
+            Self.logger.info("Operation cancelled")
         } catch let error as LocalizedError {
             localizedError = error
         } catch {
             localizedError = WrappedError.wrapped(error: error)
         }
-        
-        showError = localizedError != nil
     }
 }
 
 struct AlertingErrorHandlerModifier: ViewModifier {
     private static let logger = LoggerFactory.logger(AlertingErrorHandlerModifier.self)
-    
-    @Bindable var errorHandler: AlertingErrorHandler
+
+    var errorHandler: ErrorHandler
+
+    var isShowingError: Binding<Bool> {
+        Binding {
+            errorHandler.localizedError != nil
+        } set: { _ in
+            errorHandler.localizedError = nil
+        }
+    }
 
     func body(content: Content) -> some View {
         content
             .alert(
                 errorHandler.localizedError?.localizedDescription ?? "Unexpected Error",
-                isPresented: $errorHandler.showError,
+                isPresented: isShowingError,
                 presenting: errorHandler.localizedError,
                 actions: {_ in
                     Button("OK") {
@@ -67,10 +72,9 @@ struct AlertingErrorHandlerModifier: ViewModifier {
 }
 
 extension View {
-    func alertingErrorHandler(_ errorHandler: AlertingErrorHandler) -> some View {
-        return environment(errorHandler)
-            .modifier(
-                AlertingErrorHandlerModifier(errorHandler: errorHandler)
-            )
+    func alertingErrorHandler(_ errorHandler: ErrorHandler) -> some View {
+        return modifier(
+            AlertingErrorHandlerModifier(errorHandler: errorHandler)
+        )
     }
 }

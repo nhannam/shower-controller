@@ -43,7 +43,6 @@ struct Preview<Component: View>: View {
             }
             .environment(tools)
             .monitorModelContextTransactions()
-            .alertingErrorHandler(tools.errorHandler)
         }
         .modelContainer(tools.modelContainer)
         .task(tools.startProcessing)

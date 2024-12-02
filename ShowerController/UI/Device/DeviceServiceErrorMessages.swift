@@ -20,6 +20,8 @@ extension DeviceServiceError: LocalizedError {
             "Operation Failed"
         case .internalError:
             "Internal Error"
+        case .cancelled:
+            "Operation Cancelled"
         }
     }
     

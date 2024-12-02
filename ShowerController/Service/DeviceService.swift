@@ -16,6 +16,7 @@ enum DeviceServiceError: Error {
     case deviceNotPaired
     case commandFailed
     case internalError
+    case cancelled
 }
 
 // @ModelActor creates a single arg init, which prevents us passing the BluetoothService in
@@ -39,6 +40,8 @@ actor DeviceService: ModelActor {
     private func errorBoundary(_ block: () async throws -> Void) async throws -> Void {
         do {
             try await block()
+        } catch is CancellationError {
+            throw DeviceServiceError.cancelled
         } catch let error as DeviceServiceError {
             throw error
         } catch let error as BluetoothServiceError {
@@ -113,6 +116,7 @@ actor DeviceService: ModelActor {
         try await withThrowingTaskGroup(of: Void.self) { group in
             for command in commands {
                 group.addTask {
+                    try Task.checkCancellation()
                     try await self.executeCommand(command)
                 }
             }
@@ -312,6 +316,8 @@ actor DeviceService: ModelActor {
     private func stopOutletsAndWaitForLockoutToExipire(device: Device, client: Client) async throws {
         // Most update operations require the device to be stopped before they're permitted.
         if (!device.isStopped) {
+            try Task.checkCancellation()
+
             try await executeCommand(
                 OperateOutletControls(
                    deviceId: device.id,
@@ -326,14 +332,18 @@ actor DeviceService: ModelActor {
             )
         }
         
+        
         // They also require a delay of 5 seconds after stopping the outlets.
         // Re-fetch the device as the stop command may have updated the lockout time
         let updatedDevice = try getDeviceById(device.id)
         if updatedDevice.isLockedOut {
+            try Task.checkCancellation()
+
             let lockoutTimeRemaining = updatedDevice.updatesLockedOutUntil.timeIntervalSinceNow
             Self.logger.debug("Lock seconds remaining: \(String(describing: lockoutTimeRemaining))")
             try await Task.sleep(for: .milliseconds(lockoutTimeRemaining * 1000))
         }
+
     }
     
     private func doUpdatePreset(

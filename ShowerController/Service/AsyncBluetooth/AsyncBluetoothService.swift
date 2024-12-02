@@ -148,6 +148,7 @@ actor AsyncBluetoothService: ModelActor, BluetoothService {
     func executeCommand(_ command: any DeviceCommand) async throws -> any DeviceNotification {
         try await errorBoundary {
             let peripheral = try await self.getReadyPeripheral(command.deviceId)
+            try Task.checkCancellation()
             return try await withTimeout(Self.timeoutDuration) {
                 let commandDispatcher = CommandExecutor(peripheral: peripheral)
                 return try await command.accept(isolation: self, commandDispatcher)
@@ -157,8 +158,10 @@ actor AsyncBluetoothService: ModelActor, BluetoothService {
     
     private func disconnectPeripheral(_ peripheral: Peripheral) async throws {
         Self.logger.debug("Disconnecting \(peripheral.identifier)")
-        try await central.cancelPeripheralConnection(peripheral)
         try await peripheral.cancelAllOperations()
+        if peripheral.state != .disconnected {
+            try await central.cancelPeripheralConnection(peripheral)
+        }
         Self.logger.debug("Disconnected \(peripheral.identifier)")
     }
     

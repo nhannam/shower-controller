@@ -16,6 +16,7 @@ struct EditPairedClientView: View {
     var device: Device
     var pairedClient: PairedClient
 
+    @State private var errorHandler = ErrorHandler()
     @State private var isShowingConfirmation =  false
     @State private var isSubmitted =  false
 
@@ -45,6 +46,7 @@ struct EditPairedClientView: View {
                 confirmAction: { isSubmitted = true }
             )
             .operationInProgress(isSubmitted)
+            .alertingErrorHandler(errorHandler)
             .navigationTitle("Paired Client")
             .navigationBarBackButtonHidden()
             .task(id: isSubmitted) {
@@ -57,7 +59,7 @@ struct EditPairedClientView: View {
     }
     
     func unpair() async {
-        await tools.alertOnError {
+        await errorHandler.handleError {
             let isCurrentClient = device.clientSlot == pairedClient.clientSlot
 
             try await tools.deviceService.unpair(device.id, clientSlot: pairedClient.clientSlot)

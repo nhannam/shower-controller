@@ -15,6 +15,7 @@ struct PairedDeviceSectionView: View {
 
     @Query var devices: [Device]
 
+    @State private var errorHandler = ErrorHandler()
     @State var selectedDevice: Device? = nil
 
     var body: some View {
@@ -36,6 +37,7 @@ struct PairedDeviceSectionView: View {
             header: { Text("Paired") }
         )
         .disabled(selectedDevice != nil)
+        .alertingErrorHandler(errorHandler)
         .task(id: selectedDevice) {
             if let selectedDevice {
                 await unpair(device: selectedDevice)
@@ -45,7 +47,7 @@ struct PairedDeviceSectionView: View {
     }
     
     func unpair(device: Device) async {
-        await tools.alertOnError {
+        await errorHandler.handleError {
             try await tools.deviceService.unpair(device.id, clientSlot: device.clientSlot)
         }
     }

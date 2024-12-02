@@ -21,6 +21,7 @@ struct EditOutletSettingsView: View {
     @State private var maximumTemperature: Double = Device.permittedTemperatureRange.upperBound
     @State private var maximumDurationSeconds: Int = Device.maximumPermittedDurationSeconds
 
+    @State private var errorHandler = ErrorHandler()
     @State private var isShowingConfirmation =  false
     @State private var isSubmitted =  false
     
@@ -80,10 +81,10 @@ struct EditOutletSettingsView: View {
                 }
                 ToolbarItem(placement: .confirmationAction) {
                     Button("Done") {
-                        if !device.isStopped {
-                            isShowingConfirmation = true
-                        } else {
+                        if device.isStopped {
                             isSubmitted = true
+                        } else {
+                            isShowingConfirmation = true
                         }
                     }
                     .disabled(!isValid)
@@ -95,24 +96,25 @@ struct EditOutletSettingsView: View {
                 confirmAction: { isSubmitted = true }
             )
             .operationInProgress(isSubmitted)
+            .alertingErrorHandler(errorHandler)
             .navigationTitle(outlet.type.description)
             .navigationBarBackButtonHidden()
-        }
-        .task {
-            minimumTemperature = outlet.minimumTemperature
-            maximumTemperature = outlet.maximumTemperature
-            maximumDurationSeconds = outlet.maximumDurationSeconds
-        }
-        .task(id: isSubmitted) {
-            if isSubmitted {
-                await persist()
-                isSubmitted = false
+            .task {
+                minimumTemperature = outlet.minimumTemperature
+                maximumTemperature = outlet.maximumTemperature
+                maximumDurationSeconds = outlet.maximumDurationSeconds
+            }
+            .task(id: isSubmitted) {
+                if isSubmitted {
+                    await persist()
+                    isSubmitted = false
+                }
             }
         }
     }
     
     func persist() async {
-        await tools.alertOnError {
+        await errorHandler.handleError {
             try await tools.deviceService.updateOutletSettings(
                 device.id,
                 outletSlot: outlet.outletSlot,

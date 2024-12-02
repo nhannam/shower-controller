@@ -18,6 +18,7 @@ struct EditControllerSettingsView: View {
     @State private var standbyLightingEnabled = true
     @State private var outletsSwitched: Bool = false
     
+    @State private var errorHandler = ErrorHandler()
     @State private var isShowingConfirmation =  false
     @State private var isSubmitted =  false
 
@@ -35,10 +36,10 @@ struct EditControllerSettingsView: View {
                 }
                 ToolbarItem(placement: .confirmationAction) {
                     Button("Done") {
-                        if !device.isStopped {
-                            isShowingConfirmation = true
-                        } else {
+                        if device.isStopped {
                             isSubmitted = true
+                        } else {
+                            isShowingConfirmation = true
                         }
                     }
                 }
@@ -49,23 +50,24 @@ struct EditControllerSettingsView: View {
                 confirmAction: { isSubmitted = true }
             )
             .operationInProgress(isSubmitted)
+            .alertingErrorHandler(errorHandler)
             .navigationTitle("Controller")
             .navigationBarBackButtonHidden()
-        }
-        .task {
-            standbyLightingEnabled = device.standbyLightingEnabled
-            outletsSwitched = device.outletsSwitched
-        }
-        .task(id: isSubmitted) {
-            if isSubmitted {
-                await persist()
-                isSubmitted = false
+            .task {
+                standbyLightingEnabled = device.standbyLightingEnabled
+                outletsSwitched = device.outletsSwitched
+            }
+            .task(id: isSubmitted) {
+                if isSubmitted {
+                    await persist()
+                    isSubmitted = false
+                }
             }
         }
     }
     
     func persist() async {
-        await tools.alertOnError {
+        await errorHandler.handleError {
             try await tools.deviceService.updateControllerSettings(
                 device.id,
                 standbyLightingEnabled: standbyLightingEnabled,
