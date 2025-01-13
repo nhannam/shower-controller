@@ -112,7 +112,7 @@ actor DeviceService: ModelActor {
         }
     }
 
-    private func executeCommands(_ commands: [DeviceCommand]) async throws {
+    private func executeCommandsInAnyOrder(_ commands: [DeviceCommand]) async throws {
         try await withThrowingTaskGroup(of: Void.self) { group in
             for command in commands {
                 group.addTask {
@@ -123,8 +123,15 @@ actor DeviceService: ModelActor {
             
             try await group.waitForAll()
         }
+        
     }
 
+    private func executeCommandsInOrder(_ commands: [DeviceCommand]) async throws {
+        for command in commands {
+            try await self.executeCommand(command)
+        }
+    }
+    
     func requestDeviceDetails(_ deviceId: UUID) async throws {
         try await errorBoundary {
             let (device, client) = try await getPairedDevice(deviceId)
@@ -156,7 +163,7 @@ actor DeviceService: ModelActor {
 
             try await stopOutletsAndWaitForLockoutToExipire(device: device, client: client)
             
-            try await executeCommands([
+            try await executeCommandsInOrder([
                 UpdateNickname(
                     deviceId: device.id,
                     clientSlot: device.clientSlot,
@@ -261,7 +268,7 @@ actor DeviceService: ModelActor {
     func requestOutletSettings(_ deviceId: UUID) async throws {
         try await errorBoundary {
             let (device, client) = try await getPairedDevice(deviceId)
-            try await executeCommands(
+            try await executeCommandsInAnyOrder(
                 device.outletsSortedBySlot.map({ outlet in
                     RequestOutletSettings(
                         deviceId: device.id,
@@ -278,7 +285,7 @@ actor DeviceService: ModelActor {
         try await errorBoundary {
             do {
                 let (device, client) = try await getPairedDevice(deviceId)
-                try await executeCommands([
+                try await executeCommandsInAnyOrder([
                     // Device settings include the default preset slot
                     RequestDeviceSettings(
                         deviceId: device.id,
@@ -299,7 +306,7 @@ actor DeviceService: ModelActor {
             // that swift data will share the info between different modelContexts
             do {
                 let (device, client) = try await getPairedDevice(deviceId)
-                try await executeCommands(
+                try await executeCommandsInAnyOrder(
                     device.presets.map({ preset in
                         RequestPresetDetails(
                             deviceId: device.id,
@@ -391,7 +398,7 @@ actor DeviceService: ModelActor {
             ]
         }
 
-        try await executeCommands(commands)
+        try await executeCommandsInOrder(commands)
     }
     
     func createPresetDetails(
@@ -456,7 +463,7 @@ actor DeviceService: ModelActor {
             if device.getPresetBySlot(presetSlot) != nil {
                 try await stopOutletsAndWaitForLockoutToExipire(device: device, client: client)
 
-                try await executeCommands([
+                try await executeCommandsInOrder([
                     DeletePresetDetails(
                         deviceId: device.id,
                         clientSlot: device.clientSlot,
@@ -497,7 +504,7 @@ actor DeviceService: ModelActor {
             
             var thrown: Error? = nil
             do {
-                try await executeCommands([
+                try await executeCommandsInOrder([
                     UnpairDevice(
                         deviceId: device.id,
                         clientSlot: device.clientSlot,
@@ -545,7 +552,7 @@ actor DeviceService: ModelActor {
             
             do {
                 let (device, client) = try await getPairedDevice(deviceId)
-                try await executeCommands(
+                try await executeCommandsInAnyOrder(
                     device.pairedClients.map({ pairedClient in
                         RequestPairedClientDetails(
                             deviceId: device.id,
@@ -606,7 +613,7 @@ actor DeviceService: ModelActor {
                     return arr
                 })
             
-            try await executeCommands(presetClamping + [
+            try await executeCommandsInOrder(presetClamping + [
                 UpdateOutletSettings(
                     deviceId: device.id,
                     clientSlot: device.clientSlot,
@@ -633,7 +640,7 @@ actor DeviceService: ModelActor {
 
             try await stopOutletsAndWaitForLockoutToExipire(device: device, client: client)
 
-            try await executeCommands([
+            try await executeCommandsInOrder([
                 UpdateControllerSettings(
                     deviceId: device.id,
                     clientSlot: device.clientSlot,
@@ -656,7 +663,7 @@ actor DeviceService: ModelActor {
 
             try await stopOutletsAndWaitForLockoutToExipire(device: device, client: client)
 
-            try await executeCommands([
+            try await executeCommandsInOrder([
                 UpdateWirelessRemoteButtonSettings(
                     deviceId: device.id,
                     clientSlot: device.clientSlot,
@@ -709,7 +716,7 @@ actor DeviceService: ModelActor {
         try await errorBoundary {
             let (device, client) = try await getPairedDevice(deviceId)
 
-            try await executeCommands([
+            try await executeCommandsInAnyOrder([
                 RequestDeviceInformation(
                     deviceId: device.id,
                     clientSlot: device.clientSlot,

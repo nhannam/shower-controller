@@ -7,7 +7,7 @@
 
 import Foundation
 import AsyncBluetooth
-@preconcurrency import Combine
+import Combine
 
 class CommandExecutor {
     private static let logger = LoggerFactory.logger(CommandExecutor.self)
@@ -47,7 +47,7 @@ extension CommandExecutor: DeviceCommandVisitor {
         let dataAccumulator = DataAccumulator(clientSlot: clientSlot)
         let notificationParser = NotificationParser(peripheral: peripheral, command: command)
 
-        var notificationData = await peripheral.characteristicValueUpdatedPublisher
+        var notificationData = peripheral.characteristicValueUpdatedPublisher
             .filter { $0.characteristic.uuid == Characteristic.CHARACTERISTIC_NOTIFICATIONS }
             .compactMap(\.value)
             .compactMap({ dataAccumulator.accumulate($0) })
