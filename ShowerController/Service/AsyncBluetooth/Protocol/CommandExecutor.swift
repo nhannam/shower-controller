@@ -55,12 +55,13 @@ extension CommandExecutor: DeviceCommandVisitor {
             .buffer(size: 1, prefetch: .keepFull, whenFull: .dropNewest)
             .values
             .makeAsyncIterator()
+        async let notification = notificationData.next()
         
         let payloadWithCrc = payload.withCrc(clientSecret: clientSecret)
         try await writeData(payloadWithCrc: payloadWithCrc)
         
-        if let notification = await notificationData.next() {
-            return notification
+        if let received = await notification {
+            return received
         } else {
             throw BluetoothServiceError.notificationNotReceived
         }
@@ -119,7 +120,7 @@ extension CommandExecutor: DeviceCommandVisitor {
             forCharacteristicWithCBUUID: Characteristic.CHARACTERISTIC_HARDWARE_REVISION,
             ofServiceWithCBUUID: Service.SERVICE_DEVICE_INFORMATION
         )
-        let firmwareRevision: Data? = try await peripheral.readValue<Data>(
+        let firmwareRevision: Data? = try await peripheral.readValue(
             forCharacteristicWithCBUUID: Characteristic.CHARACTERISTIC_FIRMWARE_REVISION,
             ofServiceWithCBUUID: Service.SERVICE_DEVICE_INFORMATION
         )

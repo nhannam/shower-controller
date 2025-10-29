@@ -17,7 +17,7 @@ struct CirclePickerTrack<TrackShape: ShapeStyle>: View {
                 to: track.radianRange.upperBound / twoPi
             )
             .rotation(.radians(track.radianOffset))
-            .stroke<TrackShape>(
+            .stroke(
                 track.shapeStyle,
                 style: StrokeStyle(
                     lineWidth: track.lineWidth,

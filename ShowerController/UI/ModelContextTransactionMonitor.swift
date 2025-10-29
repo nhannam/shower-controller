@@ -8,7 +8,7 @@
 import Foundation
 import Combine
 import SwiftData
-import SwiftUICore
+import SwiftUI
 
 /*
  

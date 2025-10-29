@@ -158,7 +158,7 @@ actor AsyncBluetoothService: ModelActor, BluetoothService {
     
     private func disconnectPeripheral(_ peripheral: Peripheral) async throws {
         Self.logger.debug("Disconnecting \(peripheral.identifier)")
-        try await peripheral.cancelAllOperations()
+        await peripheral.cancelAllOperations()
         if peripheral.state != .disconnected {
             try await central.cancelPeripheralConnection(peripheral)
         }
@@ -178,7 +178,7 @@ actor AsyncBluetoothService: ModelActor, BluetoothService {
                 }
             }
             
-            try await self.central.cancelAllOperations()
+            await self.central.cancelAllOperations()
         }
     }
     
