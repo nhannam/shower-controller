@@ -19,7 +19,6 @@ struct EditControllerSettingsView: View {
     @State private var outletsSwitched: Bool = false
     
     @State private var errorHandler = ErrorHandler()
-    @State private var isShowingConfirmation =  false
     @State private var isSubmitted =  false
 
     var body: some View {
@@ -30,25 +29,20 @@ struct EditControllerSettingsView: View {
             }
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
-                    Button("Cancel") {
+                    Button("Cancel", systemImage: "xmark") {
                         dismiss()
                     }
                 }
                 ToolbarItem(placement: .confirmationAction) {
-                    Button("Done") {
-                        if device.isStopped {
-                            isSubmitted = true
-                        } else {
-                            isShowingConfirmation = true
-                        }
+                    DeviceLockoutConfirmationButton(
+                        "Done",
+                        systemImage: "checkmark",
+                        device: device
+                    ) {
+                        isSubmitted = true
                     }
                 }
             }
-            .deviceLockoutConfirmationDialog(
-                $isShowingConfirmation,
-                device: device,
-                confirmAction: { isSubmitted = true }
-            )
             .operationInProgress(isSubmitted)
             .alertingErrorHandler(errorHandler)
             .navigationTitle("Controller")

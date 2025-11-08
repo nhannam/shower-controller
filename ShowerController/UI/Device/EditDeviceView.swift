@@ -18,7 +18,6 @@ struct EditDeviceView: View {
     @State private var nickname: String = ""
     
     @State private var errorHandler = ErrorHandler()
-    @State private var isShowingConfirmation =  false
     @State private var isSubmitted =  false
 
     private var isNicknameValid: Bool {
@@ -36,25 +35,21 @@ struct EditDeviceView: View {
             }
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
-                    Button("Cancel") {
+                    Button("Cancel", systemImage:"xmark") {
                         dismiss()
                     }
                 }
                 ToolbarItem(placement: .confirmationAction) {
-                    Button("Done") {
-                        if device.isStopped {
-                            isSubmitted = true
-                        } else {
-                            isShowingConfirmation = true
-                        }
-                    }.disabled(!isNicknameValid)
+                    DeviceLockoutConfirmationButton(
+                        "Done",
+                        systemImage: "checkmark",
+                        device: device
+                    ) {
+                        isSubmitted = true
+                    }
+                    .disabled(!isNicknameValid)
                 }
             }
-            .deviceLockoutConfirmationDialog(
-                $isShowingConfirmation,
-                device: device,
-                confirmAction: { isSubmitted = true }
-            )
             .operationInProgress(isSubmitted)
             .alertingErrorHandler(errorHandler)
             .task {

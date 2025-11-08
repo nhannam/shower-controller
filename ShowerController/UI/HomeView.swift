@@ -26,16 +26,15 @@ struct HomeView: View {
                 PairedDeviceSectionView()
             }
         }
-        .alertingErrorHandler(errorHandler)
-        .suspendable(onSuspend: suspendProcessing)
         .toolbar {
-            ToolbarItem {
-                Button(
-                    action: { showPairing = true },
-                    label: { Label("Find...", systemImage: "magnifyingglass") }
-                )
+            ToolbarItem(placement: .topBarTrailing) {
+                Button(action: { showPairing = true }) {
+                    Image(systemName: "magnifyingglass")
+                }
             }
         }
+        .alertingErrorHandler(errorHandler)
+        .suspendable(onSuspend: suspendProcessing)
         .sheet(isPresented: $showPairing) {
             PairingView()
         }

@@ -21,8 +21,6 @@ struct SettingsView: View {
     @State private var editingWirelessRemoteButtonSettings = false
     
     @State private var errorHandler = ErrorHandler()
-    @State private var isShowingConfirmation =  false
-    @State private var pendingConfirmationAction: Action? = nil
     @State private var action: Action? = nil
 
     var body: some View {
@@ -49,8 +47,18 @@ struct SettingsView: View {
             }
             
             Section("Device") {
-                Button("Restart Device") { triggerAction(.restart) }
-                Button("Factory Reset") { triggerAction(.factoryReset) }
+                DeviceLockoutConfirmationButton(
+                    "Restart Device",
+                    device: device
+                ) {
+                    action = .restart
+                }
+                DeviceLockoutConfirmationButton(
+                    "Factory Reset",
+                    device: device
+                ) {
+                    action = .factoryReset
+                }
             }
         }
         .sheet(item: $selectedOutlet) { outlet in
@@ -62,11 +70,6 @@ struct SettingsView: View {
         .sheet(isPresented: $editingWirelessRemoteButtonSettings) {
             EditWirelessRemoteButtonSettingsView(device: device)
         }
-        .deviceLockoutConfirmationDialog(
-            $isShowingConfirmation,
-            device: device,
-            confirmAction: actionConfirmed
-        )
         .alertingErrorHandler(errorHandler)
         .navigationTitle("Settings")
         .deviceStatePolling(device.id)
@@ -95,21 +98,6 @@ struct SettingsView: View {
         }
     }
     
-    func triggerAction(_ action: Action) {
-        if device.isStopped {
-            self.action = action
-        } else {
-            pendingConfirmationAction = action
-            isShowingConfirmation = true
-        }
-    }
-    
-    func actionConfirmed() {
-        action = pendingConfirmationAction
-        pendingConfirmationAction = nil
-    }
-    
-
     func restartDevice() async {
         await errorHandler.handleError {
             try await tools.deviceService.restartDevice(device.id)

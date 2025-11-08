@@ -127,94 +127,13 @@ struct ModelContextTransactionMonitor: ViewModifier {
         return lastTransaction
     }
     
-    func fireUpdate<Entity: PersistentModel, Value>(observationRegistrar: ObservationRegistrar, entity: Entity, keyPath: KeyPath<Entity, Value>) {
-        observationRegistrar.willSet(entity, keyPath: keyPath)
-        observationRegistrar.didSet(entity, keyPath: keyPath)
-    }
-    
     func handleUpdate<Entity: PersistentModel>(historyUpdate: DefaultHistoryUpdate<Entity>) throws {
         let persistentIdentifier = historyUpdate.changedPersistentIdentifier
         let fetchDescriptor = FetchDescriptor<Entity>(predicate: #Predicate {
             $0.persistentModelID == persistentIdentifier
         })
         
-        if let model = try modelContext.fetch(fetchDescriptor).first {
-            if let observableModel = model as? any ObservableModel {
-                let observationRegistrar = observableModel.observationRegistrar()
-                for updatedAttribute in historyUpdate.updatedAttributes {
-                    // This big switch is nasty, and will need maintaining for every different data type,
-                    // but I haven't found a nicer way to convince the type system that the PartialKeyPath
-                    // that is provides is enough without coercing into a KeyPath
-                    switch updatedAttribute {
-                    case let updatedAttribute as KeyPath<Entity, Bool>:
-                        fireUpdate(observationRegistrar: observationRegistrar, entity: model, keyPath: updatedAttribute)
-
-                    case let updatedAttribute as KeyPath<Entity, Data>:
-                        fireUpdate(observationRegistrar: observationRegistrar, entity: model, keyPath: updatedAttribute)
- 
-                    case let updatedAttribute as KeyPath<Entity, Date>:
-                        fireUpdate(observationRegistrar: observationRegistrar, entity: model, keyPath: updatedAttribute)
-
-                    case let updatedAttribute as KeyPath<Entity, Device?>:
-                        fireUpdate(observationRegistrar: observationRegistrar, entity: model, keyPath: updatedAttribute)
-
-                    case let updatedAttribute as KeyPath<Entity, Device.RunningState>:
-                        fireUpdate(observationRegistrar: observationRegistrar, entity: model, keyPath: updatedAttribute)
-                        
-                    case let updatedAttribute as KeyPath<Entity, Double>:
-                        fireUpdate(observationRegistrar: observationRegistrar, entity: model, keyPath: updatedAttribute)
-
-                    case let updatedAttribute as KeyPath<Entity, Int>:
-                        fireUpdate(observationRegistrar: observationRegistrar, entity: model, keyPath: updatedAttribute)
-                        
-                    case let updatedAttribute as KeyPath<Entity, String>:
-                        fireUpdate(observationRegistrar: observationRegistrar, entity: model, keyPath: updatedAttribute)
-                    case let updatedAttribute as KeyPath<Entity, String?>:
-                        fireUpdate(observationRegistrar: observationRegistrar, entity: model, keyPath: updatedAttribute)
-                        
-                    case let updatedAttribute as KeyPath<Entity, Outlet>:
-                        fireUpdate(observationRegistrar: observationRegistrar, entity: model, keyPath: updatedAttribute)
-                    case let updatedAttribute as KeyPath<Entity, [Outlet]>:
-                        fireUpdate(observationRegistrar: observationRegistrar, entity: model, keyPath: updatedAttribute)
-                        
-                    case let updatedAttribute as KeyPath<Entity, Outlet.OutletType>:
-                        fireUpdate(observationRegistrar: observationRegistrar, entity: model, keyPath: updatedAttribute)
-
-                    case let updatedAttribute as KeyPath<Entity, [PairedClient]>:
-                        fireUpdate(observationRegistrar: observationRegistrar, entity: model, keyPath: updatedAttribute)
-
-                    case let updatedAttribute as KeyPath<Entity, [Preset]>:
-                        fireUpdate(observationRegistrar: observationRegistrar, entity: model, keyPath: updatedAttribute)
-
-                    case let updatedAttribute as KeyPath<Entity, TechnicalInformation?>:
-                        fireUpdate(observationRegistrar: observationRegistrar, entity: model, keyPath: updatedAttribute)
-                        
-                    case let updatedAttribute as KeyPath<Entity, UInt8>:
-                        fireUpdate(observationRegistrar: observationRegistrar, entity: model, keyPath: updatedAttribute)
-                    case let updatedAttribute as KeyPath<Entity, UInt8?>:
-                        fireUpdate(observationRegistrar: observationRegistrar, entity: model, keyPath: updatedAttribute)
-                        
-                    case let updatedAttribute as KeyPath<Entity, UInt16>:
-                        fireUpdate(observationRegistrar: observationRegistrar, entity: model, keyPath: updatedAttribute)
-
-                    case let updatedAttribute as KeyPath<Entity, UserInterface?>:
-                        fireUpdate(observationRegistrar: observationRegistrar, entity: model, keyPath: updatedAttribute)
-
-                    case let updatedAttribute as KeyPath<Entity, [UserInterfaceButton]>:
-                        fireUpdate(observationRegistrar: observationRegistrar, entity: model, keyPath: updatedAttribute)
-
-                    case let updatedAttribute as KeyPath<Entity, UserInterfaceButton.ButtonStartBehaviour>:
-                        fireUpdate(observationRegistrar: observationRegistrar, entity: model, keyPath: updatedAttribute)
-
-                    case let updatedAttribute as KeyPath<Entity, UUID>:
-                        fireUpdate(observationRegistrar: observationRegistrar, entity: model, keyPath: updatedAttribute)
-
-                    default:
-                        Self.logger.warning("Unknown change received for \(String(describing: updatedAttribute))")
-                    }
-                }
-            }
-        }
+        let _ = try modelContext.fetch(fetchDescriptor)
     }
 }
 

@@ -41,9 +41,3 @@ class  PairedClientNotificationApplier: ClientNotificationVisitor {
         }
     }
 }
-
-extension PairedClient: ObservableModel {
-    func observationRegistrar() -> ObservationRegistrar {
-        return _$observationRegistrar
-    }
-}

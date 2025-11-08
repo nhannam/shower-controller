@@ -22,7 +22,6 @@ struct EditOutletSettingsView: View {
     @State private var maximumDurationSeconds: Int = Device.maximumPermittedDurationSeconds
 
     @State private var errorHandler = ErrorHandler()
-    @State private var isShowingConfirmation =  false
     @State private var isSubmitted =  false
     
     private var isTemperatureRangeValid: Bool {
@@ -75,26 +74,21 @@ struct EditOutletSettingsView: View {
             }
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
-                    Button("Cancel") {
+                    Button("Cancel", systemImage: "xmark") {
                         dismiss()
                     }
                 }
                 ToolbarItem(placement: .confirmationAction) {
-                    Button("Done") {
-                        if device.isStopped {
-                            isSubmitted = true
-                        } else {
-                            isShowingConfirmation = true
-                        }
+                    DeviceLockoutConfirmationButton(
+                        "Done",
+                        systemImage: "checkmark",
+                        device: device
+                    ) {
+                        isSubmitted = true
                     }
                     .disabled(!isValid)
                 }
             }
-            .deviceLockoutConfirmationDialog(
-                $isShowingConfirmation,
-                device: device,
-                confirmAction: { isSubmitted = true }
-            )
             .operationInProgress(isSubmitted)
             .alertingErrorHandler(errorHandler)
             .navigationTitle(outlet.type.description)

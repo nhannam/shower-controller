@@ -17,34 +17,27 @@ struct EditPairedClientView: View {
     var pairedClient: PairedClient
 
     @State private var errorHandler = ErrorHandler()
-    @State private var isShowingConfirmation =  false
     @State private var isSubmitted =  false
 
     var body: some View {
         NavigationStack {
             Form {
-                Text(pairedClient.name)
-                
-                Section {
-                    Button("Unpair", role: .destructive) {
-                        if device.isStopped {
-                            isSubmitted = true
-                        } else {
-                            isShowingConfirmation = true
-                        }
-                    }
-                }
+                Text(pairedClient.name)                
             }
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
-                    Button("Cancel") { dismiss() }
+                    Button("Cancel", systemImage: "xmark") { dismiss() }
+                }
+                ToolbarItem(placement: .destructiveAction) {
+                    DeviceLockoutConfirmationButton(
+                        "Unpair",
+                        systemImage: "trash",
+                        device: device
+                    ) {
+                        isSubmitted = true
+                    }
                 }
             }
-            .deviceLockoutConfirmationDialog(
-                $isShowingConfirmation,
-                device: device,
-                confirmAction: { isSubmitted = true }
-            )
             .operationInProgress(isSubmitted)
             .alertingErrorHandler(errorHandler)
             .navigationTitle("Paired Client")

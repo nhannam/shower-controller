@@ -437,9 +437,3 @@ class DeviceNotificatonApplier: DeviceNotificationVisitor {
         // TODO: Persist technical information in the model.
     }
 }
-
-extension Device: ObservableModel {
-    func observationRegistrar() -> ObservationRegistrar {
-        return _$observationRegistrar
-    }
-}

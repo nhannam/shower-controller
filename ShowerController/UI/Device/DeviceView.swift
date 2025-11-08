@@ -53,7 +53,7 @@ struct DeviceView: View {
         }
         .toolbar {
             ToolbarItem(placement: .topBarTrailing) {
-                Button("Edit") {
+                Button("Edit", systemImage: "pencil") {
                     isEditing = true
                 }
             }

@@ -18,12 +18,13 @@ struct MainNavigationStack: View {
         NavigationStack(path: $tools.navigationPath) {
             HomeView()
                 .toolbar {
-                    ToolbarItem(placement: .bottomBar) {
-                        Picker(selection: $mode, label: Text("Mode")) {
+                    ToolbarItem(placement: .topBarLeading) {
+                        Picker("Mode", selection: $mode) {
                             Text("Live").tag(ToolboxMode.live)
                             Text("Mock").tag(ToolboxMode.mock)
                         }
-                        .pickerStyle(.segmented)
+                        .pickerStyle(.palette)
+                        .fixedSize()
                     }
                 }
         }

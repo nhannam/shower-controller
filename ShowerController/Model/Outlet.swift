@@ -84,9 +84,3 @@ class OutletNotificationApplier: OutletNotificationVisitor {
         outlet.thresholdTemperature = notification.thresholdTemperature
     }
 }
-
-extension Outlet: ObservableModel {
-    func observationRegistrar() -> ObservationRegistrar {
-        return _$observationRegistrar
-    }
-}

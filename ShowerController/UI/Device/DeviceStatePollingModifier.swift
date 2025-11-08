@@ -55,10 +55,7 @@ struct DeviceStatePollingModifier: ViewModifier {
             }
             .toolbar {
                 ToolbarItem(placement: .status) {
-                    Button(
-                        action: {},
-                        label: { Image(systemName: "antenna.radiowaves.left.and.right.circle") }
-                    )
+                    Button("Connected", systemImage: "antenna.radiowaves.left.and.right.circle") {}
                     .tint(stausColour)
                 }
             }

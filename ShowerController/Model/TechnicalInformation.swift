@@ -27,9 +27,3 @@ class TechnicalInformation {
         self.bluetoothSoftwareVersion = bluetoothSoftwareVersion
     }
 }
-
-extension TechnicalInformation: ObservableModel {
-    func observationRegistrar() -> ObservationRegistrar {
-        return _$observationRegistrar
-    }
-}

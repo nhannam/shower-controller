@@ -21,9 +21,3 @@ class Client {
         self.secret = secret
     }
 }
-
-extension Client: ObservableModel {
-    func observationRegistrar() -> ObservationRegistrar {
-        return _$observationRegistrar
-    }
-}

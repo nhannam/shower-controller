@@ -27,8 +27,6 @@ struct EditPresetView: View {
     @State private var durationSeconds: Int = 0
 
     @State private var errorHandler = ErrorHandler()
-    @State private var isShowingConfirmation = false
-    @State private var pendingConfirmationAction: Action? = nil
     @State private var action: Action? = nil
     
     private var isNameValid: Bool {
@@ -41,6 +39,10 @@ struct EditPresetView: View {
     
     private var isValid: Bool {
         isNameValid && isDurationValid && outlet != nil
+    }
+    
+    private var isDefault: Bool {
+        preset?.presetSlot == device.defaultPresetSlot
     }
 
     var body: some View {
@@ -87,29 +89,44 @@ struct EditPresetView: View {
                     .frame(maxWidth: .infinity, alignment: .center)
                 }
                 
-                let isDefault = preset?.presetSlot == device.defaultPresetSlot
                 if !isDefault {
                     Section {
-                        Button("Make Default") { triggerAction(.persistPreset(makeDefault: true)) }
-                            .disabled(!isValid)
-                        Button("Delete", role: .destructive) { triggerAction(.deletePreset) }
+                        DeviceLockoutConfirmationButton(
+                            "Make Default",
+                            device: device
+                        ) {
+                            action = .persistPreset(makeDefault: true)
+                        }
+                        .disabled(!isValid)
                     }
                 }
             }
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
-                    Button("Cancel") { dismiss() }
+                    Button("Cancel", systemImage: "xmark") { dismiss() }
+                }
+                if !isDefault {
+                    ToolbarItem(placement: .destructiveAction) {
+                        DeviceLockoutConfirmationButton(
+                            "Delete",
+                            systemImage: "trash",
+                            device: device
+                        ) {
+                            action = .deletePreset
+                        }
+                    }
                 }
                 ToolbarItem(placement: .confirmationAction) {
-                    Button("Done") { triggerAction(.persistPreset(makeDefault: false)) }
-                        .disabled(!isValid)
+                    DeviceLockoutConfirmationButton(
+                        "Done",
+                        systemImage: "checkmark",
+                        device: device
+                    ) {
+                        action = .persistPreset(makeDefault: false)
+                    }
+                    .disabled(!isValid)
                 }
             }
-            .deviceLockoutConfirmationDialog(
-                $isShowingConfirmation,
-                device: device,
-                confirmAction: actionConfirmed
-            )
             .operationInProgress(action != nil)
             .alertingErrorHandler(errorHandler)
             .navigationTitle("Preset")
@@ -139,21 +156,6 @@ struct EditPresetView: View {
                 }
             }
         }
-    }
-    
-    func triggerAction(_ action: Action) {
-        if device.isStopped {
-            self.action = action
-        } else {
-            pendingConfirmationAction = action
-            isShowingConfirmation = true
-        }
-    }
-    
-    func actionConfirmed() {
-        action = pendingConfirmationAction
-        pendingConfirmationAction = nil
-        isShowingConfirmation = false
     }
     
     func persistPreset(makeDefault: Bool) async {

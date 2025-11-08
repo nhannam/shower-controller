@@ -62,9 +62,3 @@ class PresetNotificationApplier: PresetNotificationVisitor {
         }
     }
 }
-
-extension Preset: ObservableModel {
-    func observationRegistrar() -> ObservationRegistrar {
-        return _$observationRegistrar
-    }
-}
