@@ -30,108 +30,34 @@ import SwiftUI
 
 struct ModelContextTransactionMonitor: ViewModifier {
     private static let logger = LoggerFactory.logger(ModelContextTransactionMonitor.self)
-
-    @Environment(\.modelContext) private var modelContext: ModelContext
     
-    let publisher = NotificationCenter.default
-        .publisher(for: ModelContext.didSave, object: nil)
-        .receive(on: DispatchQueue.main)
+    @Environment(\.modelContext) private var modelContext: ModelContext
     
     func body(content: Content) -> some View {
         content
-            .onReceive(publisher){ notification in
-                do {
-                    try catchUp()
-                } catch {
-                    Self.logger.warning("Failed to catch up with database changes: \(error)")
-                }
-            }
-    }
-    
-    func catchUp() throws {
-        let position = try modelContext.fetch(
-            FetchDescriptor<TransactionMonitorPosition>(
-                predicate: #Predicate<TransactionMonitorPosition> { position in true }
-            )
-        ).first
-        
-        let positionToken = position?.token
-        let author = modelContext.author
-        
-        let historyDescriptor = if let positionToken {
-            HistoryDescriptor<DefaultHistoryTransaction>(predicate: #Predicate { $0.token > positionToken && $0.author != author })
-        } else {
-            HistoryDescriptor<DefaultHistoryTransaction>(predicate: #Predicate { $0.author != author })
-        }
-        
-        if let lastProcessedTransaction = try processTransactions(historyDescriptor: historyDescriptor) {
-            try modelContext.transaction {
-                if let position {
-                    position.token = lastProcessedTransaction
-                } else {
-                    modelContext.insert(TransactionMonitorPosition(token: lastProcessedTransaction))
-                }
-            }
-        }
-    }
-    
-    func processTransactions(historyDescriptor: HistoryDescriptor<DefaultHistoryTransaction>) throws -> DefaultHistoryToken? {
-        let txns = try modelContext.fetchHistory(historyDescriptor)
-        var lastTransaction: DefaultHistoryToken? = nil
-        
-        if !txns.isEmpty {
-            Self.logger.info("Catching up with \(txns.count) transactions")
-            for txn in txns {
-                
-                // Fire model update events
-                for change in txn.changes {
-                    switch change {
-                    case .insert(let insert):
-                        Self.logger.debug("Insert received for \(String(describing: insert.changedPersistentIdentifier))")
-
-                    case .update(let update as DefaultHistoryUpdate<Client>):
-                        try handleUpdate(historyUpdate: update)
-                    case .update(let update as DefaultHistoryUpdate<Device>):
-                        try handleUpdate(historyUpdate: update)
-                    case .update(let update as DefaultHistoryUpdate<Outlet>):
-                        try handleUpdate(historyUpdate: update)
-                    case .update(let update as DefaultHistoryUpdate<PairedClient>):
-                        try handleUpdate(historyUpdate: update)
-                    case .update(let update as DefaultHistoryUpdate<Preset>):
-                        try handleUpdate(historyUpdate: update)
-                    case .update(let update as DefaultHistoryUpdate<ScanResult>):
-                        try handleUpdate(historyUpdate: update)
-                    case .update(let update as DefaultHistoryUpdate<TechnicalInformation>):
-                        try handleUpdate(historyUpdate: update)
-                    case .update(let update as DefaultHistoryUpdate<UserInterface>):
-                        try handleUpdate(historyUpdate: update)
-                    case .update(let update as DefaultHistoryUpdate<UserInterfaceButton>):
-                        try handleUpdate(historyUpdate: update)
-
-                    case .update(_):
-                        Self.logger.debug("Update received for \(String(describing: change.changedPersistentIdentifier))")
+            .task {
+                for await msg in NotificationCenter.default.messages(
+                    for: Device.DeviceDidUpdate.self
+                ) {
+                    do {
+                        let _ = try fetchDevice(msg.deviceId)
+                    } catch {
                         
-                    case .delete(let delete):
-                        Self.logger.debug("Delete received for \(String(describing: delete.changedPersistentIdentifier))")
-                        
-                    @unknown default:
-                        Self.logger.debug("Unknown change received for \(String(describing: change.changedPersistentIdentifier))")
                     }
-                    
-                    lastTransaction = txn.token
                 }
             }
-            Self.logger.debug("Caught up transactions to \(String(describing: lastTransaction))")
-        }
-        
-        return lastTransaction
     }
-    
-    func handleUpdate<Entity: PersistentModel>(historyUpdate: DefaultHistoryUpdate<Entity>) throws {
-        let persistentIdentifier = historyUpdate.changedPersistentIdentifier
-        let fetchDescriptor = FetchDescriptor<Entity>(predicate: #Predicate {
-            $0.persistentModelID == persistentIdentifier
+        
+    func fetchDevice(_ id: UUID) throws {
+        Self.logger.warning("Fetching device: \(id)")
+        
+        var fetchDescriptor = FetchDescriptor<Device>(predicate: #Predicate {
+            $0.id == id
         })
+        fetchDescriptor.relationshipKeyPathsForPrefetching = [
+            \.outlets, \.pairedClients, \.presets, \.technicalInformation, \.userInterface, \.userInterface?.buttons
+            
+        ]
         
         let _ = try modelContext.fetch(fetchDescriptor)
     }

@@ -66,7 +66,7 @@ final class NotificationParser: Sendable {
                     notificationType = "UnpairSuceeded"
                     notification = UnpairSuccessNotification(
                         deviceId: command.deviceId,
-                        clientSlot: unpairCommand.clientSlot
+                        clientSlot: unpairCommand.pairedClientSlot
                     )
                 default:
                     // On nickname update etc, client slot if valid, successId = 0x01

@@ -32,7 +32,7 @@ class Device {
     var serialNumber: String
     
     @Relationship(deleteRule: .cascade, inverse: \Outlet.device)
-    fileprivate var outlets: [Outlet]
+    fileprivate(set) var outlets: [Outlet]
     fileprivate(set) var outletsSwitched: Bool
 
     @Relationship(deleteRule: .cascade, inverse: \Preset.device)
@@ -211,9 +211,7 @@ class Device {
 
     fileprivate func removePairedClientBySlot(_ clientSlot: UInt8) -> PairedClient? {
         if let index = pairedClients.firstIndex(where: { $0.isSlot(clientSlot) }) {
-            let removed = pairedClients[index]
-            pairedClients.remove(at: index)
-            return removed
+            return pairedClients.remove(at: index)
         } else {
             return nil
         }

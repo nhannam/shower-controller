@@ -9,6 +9,7 @@ import Foundation
 import SwiftData
 import AsyncAlgorithms
 import AsyncBluetooth
+import NotificationCenter
 
 enum DeviceServiceError: Error {
     case deviceNotFound
@@ -17,6 +18,14 @@ enum DeviceServiceError: Error {
     case commandFailed
     case internalError
     case cancelled
+}
+
+extension Device {
+    struct DeviceDidUpdate: NotificationCenter.AsyncMessage {
+        typealias Subject = Device
+        let deviceId: UUID
+    }
+    
 }
 
 // @ModelActor creates a single arg init, which prevents us passing the BluetoothService in
@@ -110,6 +119,8 @@ actor DeviceService: ModelActor {
                 notification.accept(DeviceNotificatonApplier(device: device, modelContext: modelContext))
             }
         }
+        
+        NotificationCenter.default.post(Device.DeviceDidUpdate(deviceId: notification.deviceId))
     }
 
     private func executeCommandsInAnyOrder(_ commands: [DeviceCommand]) async throws {
